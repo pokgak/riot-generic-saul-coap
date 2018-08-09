@@ -1,7 +1,7 @@
 # Default Makefile, for host native GNRC-based networking
 
 # name of your application
-APPLICATION = gcoap_example
+APPLICATION = dynamic_saul_coap
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
@@ -39,6 +39,8 @@ USEMODULE += fmt
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
+# Add SAUL
+USEMODULE += saul_default
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the
