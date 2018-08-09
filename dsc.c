@@ -80,18 +80,41 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
  * Parses the URI from the SAUL_CLASS.
  * Uses _generic_handler for the handler.
  */
-static int add_resource(saul_reg_t *dev, int idx)
+static int _add_resource(saul_reg_t *dev, int idx)
 {
     /* Parse the SAUL_CLASS for the URI */
-    char const uri;
+    const char uri = *((const char *) _saul_class_to_uri(saul_class_to_str(dev->driver->type)));
 
     /* Get ops for the device */
-    int ops;
+    int ops = dev->driver->read;
+    if (dev->driver->write){
+	    ops |= dev->driver->write;
+    }
 
     /* Adds the device to resource list */
     _resources[idx] = { uri, ops, _generic_handler, NULL };
 
     return 0;
+}
+
+static char *_saul_class_to_uri(char *class)
+{
+	char *uri;
+	uint8_t i = 0;
+
+	/* prepend '/' at the start */
+	sprintf(uri, "/%s", *((const char *) class));
+
+	for (c = uri[i]; uri[i]; ++i, c = uri[i]) {
+		/* change to lowercase */
+		uri[i] = tolower(c);
+
+		/* replace any '_' with / */
+		if (uri[i] == '_')
+			uri[i] = '/';
+	}
+
+	return uri;
 }
 
 /*
@@ -114,6 +137,6 @@ static void find_devices()
 
 void dsc_init(void)
 {
-    /* TODO: this needs to wait for find_devices() done first */
+    find_devices();
     gcoap_register_listener(&_listener);
 }
