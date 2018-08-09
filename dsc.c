@@ -86,9 +86,9 @@ static int _add_resource(saul_reg_t *dev, int idx)
     const char uri = *((const char *) _saul_class_to_uri(saul_class_to_str(dev->driver->type)));
 
     /* Get ops for the device */
-    int ops = dev->driver->read;
+    int ops = COAP_GET;
     if (dev->driver->write){
-	    ops |= dev->driver->write;
+	    ops |= COAP_PUT; /* TODO: how about COAP_POST? */
     }
 
     /* Adds the device to resource list */
@@ -118,20 +118,16 @@ static char *_saul_class_to_uri(char *class)
 }
 
 /*
- * Finds devices available and the operations it allows.
- * Returns a struct with the URI for the sensor/resource and allowed operations
+ * Finds devices available and adds it to the resources list
  */
-static void find_devices()
+static void find_devices(void)
 {
     int idx = 0;
 
-    /* check if dev already in listener, when not, add to listener */
     saul_reg_t reg = saul_reg;
-    while (reg->next != NULL) {
+    while (reg->next) {
         saul_reg_t dev = reg->next;
-	if (dev not in listener) {
-	    add_resource(&dev, idx);
-	}
+	add_resource(&dev, idx);
     }
 }
 
