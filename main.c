@@ -10,10 +10,11 @@ static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
 extern int gcoap_cli_cmd(int argc, char **argv);
 extern void gcoap_cli_init(void);
-extern void dsc_init(void);
+extern int dsc_init(int argc, char **argv);
 
 static const shell_command_t shell_commands[] = {
     { "coap", "CoAP example", gcoap_cli_cmd },
+    { "dsc", "init dsc", dsc_init },
     { NULL, NULL, NULL }
 };
 
@@ -22,7 +23,6 @@ int main(void)
     /* for the thread running the shell */
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
     gcoap_cli_init();
-    dsc_init();
     puts("gcoap example app");
 
     /* start shell */
