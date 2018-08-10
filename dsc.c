@@ -1,8 +1,21 @@
 #include <stdio.h>
 #include <ctype.h>
-#include "saul_reg.h"
 #include "net/gcoap.h"
 #include "fmt.h"
+#include "saul_reg.h"
+
+/*
+ * Struct pairing to hold corresponding pair of URI
+ * with the device together
+ * FIXME: tis the right way to use structs?
+ */
+typedef struct {
+    char url[NANOCOAP_URL_MAX];		/**< URL of device */
+    saul_reg_t *dev;			/**< Corresponding device */
+} saul_coap_t;
+
+/* Pairings of URI and devices */
+static saul_coap_t _pairs[10];
 
 /* Additional CoAP resources to declare */
 static coap_resource_t _resources[10];
@@ -14,6 +27,23 @@ static gcoap_listener_t _listener = {
 };
 
 /*
+ * Parses the URI to get the corresponding device
+ */
+static int _get_dev_from_uri(char *url, saul_reg_t *dev)
+{
+    /* Get the device from pair list*/
+    for (int i = 0; i < (int)(sizeof(_resources) / sizeof(saul_coap_t)); i++) {
+	if (!strcmp(url, (const char *)_pairs[i].url)) {
+		dev = _pairs[i].dev;
+		return 0;
+	}
+    }
+    (void)dev;
+
+    return -1; /* dev not found, error */
+}
+
+/*
  * Generic handler for the resources. Accepts either a GET or a PUT.
  * Ideally, this can be extended for specific task.
  * Only read or write values for now.
@@ -22,9 +52,14 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
 {
     (void)ctx;
 
+
     /* find which sensor we are currently dealing with */
-    saul_reg_t dev;	/* FIXME: get corresponding device from coap request */
-    (void)dev; /* we doesnt need it for now */
+    saul_reg_t dev;
+    int ret = _get_dev_from_uri((char *)pdu->url, &dev);
+    if (ret != 0) {
+	    puts("_generic_handler: dev not found");
+	    return -1;
+    }
 
     /* read coap method type in packet */
     unsigned method_flag = coap_method2flag(coap_get_code_detail(pdu));
@@ -33,27 +68,28 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
         case COAP_GET:
             gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
 
-	    ///* get sensor_val from current sensor */
-	    //phydat_t res;
-	    //uint16_t dim = saul_reg_read(&dev, &res);
+	    /* get sensor_val from current sensor */
+	    phydat_t res;
+	    uint16_t dim = saul_reg_read(&dev, &res);
 
-	    ///*
-	    // * sensor values can be more than one dimensions.
-	    // * Pack all results/dimensions in one line string
-	    // */
-	    //char *sensor_val;
-	    //for (int i = dim; i > 0; i--) {
-	    //    sensor_val += res.val[i];
-	    //    
-	    //    /* count the length at the same time */
-	    //    payload_len += sizeof(res.val[i]);
-	    //}
+	    /*
+	     * sensor values can be more than one dimensions.
+	     * Pack all results/dimensions in one line string
+	     */
+	    char *sensor_val = 0;
+	    ssize_t payload_len = 0;
+	    for (int i = dim; i > 0; i--) {
+	        sensor_val += res.val[i];
 
-            ///* write the response buffer with the sensor value */
-	    //sprintf((char *)pdu->payload, "%s", sensor_val);
+	        /* count the length at the same time */
+	        payload_len += sizeof(res.val[i]);
+	    }
+
+            /* write the response buffer with the sensor value */
+	    sprintf((char *)pdu->payload, "%s", sensor_val);
 	    
-	    /* Just returns 0 as dummy for now */
-	    size_t payload_len = fmt_u16_dec((char *)pdu->payload, 0);
+	    ///* Just returns 0 as dummy for now */
+	    //size_t payload_len = fmt_u16_dec((char *)pdu->payload, 0);
 
             return gcoap_finish(pdu, payload_len, COAP_FORMAT_TEXT);
 
@@ -67,18 +103,17 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
 
 static int _saul_class_to_uri(const char *class, char *uri)
 {
-	uint8_t i = 0;
-
 	/* prepend '/' at the start */
 	sprintf(uri, "/%s", class);
 
-	for (char c = uri[i]; uri[i]; ++i, c = uri[i]) {
-		/* change to lowercase */
-		uri[i] = tolower(c);
 
+	for (uint8_t i = 0; i < strlen(uri); i++) {
 		/* replace any '_' with / */
 		if (uri[i] == '_')
-			uri[i] = '/';
+		    uri[i] = '/';
+		else
+		    /* change to lowercase */
+		    uri[i] = (char)tolower((int)uri[i]);
 	}
 
 	return 0;
@@ -88,12 +123,14 @@ static int _saul_class_to_uri(const char *class, char *uri)
  * Adds dev to the resource array _resources.
  * Parses the URI from the SAUL_CLASS.
  * Uses _generic_handler for the handler.
+ *
+ * TODO: Change idx to something better
  */
 static int _add_resource(saul_reg_t *dev, int idx)
 {
     /* Parse the SAUL_CLASS for the URI */
-    char uri[12];
-    _saul_class_to_uri(saul_class_to_str(dev->driver->type), uri);
+    char url[NANOCOAP_URL_MAX];
+    _saul_class_to_uri(saul_class_to_str(dev->driver->type), url);
 
     /* Get ops for the device */
     int ops = COAP_GET;
@@ -103,11 +140,17 @@ static int _add_resource(saul_reg_t *dev, int idx)
 
     /* Adds the device to resource list */
     coap_resource_t rsc;
-    rsc.path = uri;
+    rsc.path = url;
     rsc.methods = ops;
     rsc.handler = _generic_handler;
     rsc.context = NULL;
     _resources[idx] = rsc;
+
+    /* Adds to pairing list */
+    saul_coap_t pair;
+    strcpy(pair.url, (const char *)url);
+    pair.dev = dev;
+    _pairs[idx] = pair;
 
     return 0;
 }
@@ -129,8 +172,14 @@ static void _add_devs_to_resources(void)
     }
 }
 
-void dsc_init(void)
+int dsc_init(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+
+    puts("Init dsc");
     _add_devs_to_resources();
     gcoap_register_listener(&_listener);
+
+    return 0;
 }
