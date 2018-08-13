@@ -11,7 +11,7 @@
  */
 typedef struct {
     char url[NANOCOAP_URL_MAX];		/**< URL of device */
-    saul_reg_t *dev;		/**< Corresponding device */
+    uint8_t num;		/**< Corresponding device */
 } saul_coap_t;
 
 /* Pairings of URI and devices */
@@ -27,20 +27,16 @@ static gcoap_listener_t _listener = {
 };
 
 /*
- * Parses the URI to get the corresponding device
+ * Parses URL for device num. Used to retrieve
+ * device from registry
  */
-static int _get_dev_from_uri(char *url, saul_reg_t *dev)
+static int _get_devnum(const char *url)
 {
-    /* Get the device from pair list*/
-    for (int i = 0; i < (int)(sizeof(_resources) / sizeof(saul_coap_t)); i++) {
-	if (!strcmp(url, (const char *)_pairs[i].url)) {
-		dev = _pairs[i].dev;
-		return 0;
-	}
-    }
-    (void)dev;
-
-    return -1; /* dev not found, error */
+	char *start = strrchr(url, '/');	
+	if (start)
+		return atoi((const char *) (start + 1));
+	else
+		return -ENODEV;
 }
 
 /*
@@ -54,11 +50,17 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
 
 
     /* find which sensor we are currently dealing with */
-    saul_reg_t dev;
-    int ret = _get_dev_from_uri((char *)pdu->url, &dev);
-    if (ret != 0) {
-	    puts("_generic_handler: dev not found");
-	    return -1;
+    saul_reg_t *dev;
+    int num = _get_devnum((const char *)pdu->url);
+    if (num < 0) {
+	    printf("_generic_handler: cannot find dev with URI %s\n", pdu->url);
+	    return -ENODEV;
+    }
+
+    dev = saul_reg_find_nth(num);
+    if (dev == NULL) {
+        puts("error: undefined device id (num) given");
+        return -ENODEV;
     }
 
     /* read coap method type in packet */
@@ -68,10 +70,23 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
         case COAP_GET:
             gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
 	    
-	    /* Just returns 0 as dummy for now */
-	    size_t payload_len = fmt_u16_dec((char *)pdu->payload, 0);
+	    /* read from the device */
+	    int dim;
+	    phydat_t res;
 
-            return gcoap_finish(pdu, payload_len, COAP_FORMAT_TEXT);
+	    dim = saul_reg_read(dev, &res);
+	    if (dim <= 0) {
+		    printf("error: failed to read from device #%i\n", num);
+		    return -1;
+	    }
+
+	    // TODO: Handling of devices with triple dimension data value
+	    /* write value read to response buffer */
+	    char read_val[50];
+	    sprintf(read_val, "%d %s", res.val[0], phydat_unit_to_str(res.unit));
+	    memcpy(pdu->payload, read_val, strlen(read_val));
+
+            return gcoap_finish(pdu, strlen(read_val), COAP_FORMAT_TEXT);
 
         case COAP_PUT:
 	    /* TODO */
@@ -81,11 +96,10 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
     return 0;
 }
 
-static int _saul_class_to_uri(const char *class, char *uri)
+static int _saul_class_to_uri(const char *class, char *uri, int num)
 {
 	/* prepend '/' at the start */
-	sprintf(uri, "/%s", class);
-	printf("uri: %s\n", uri);
+	sprintf(uri, "/%s/%i", class, num);
 
 	for (uint8_t i = 0; i < strlen(uri); i++) {
 		/* replace any '_' with / */
@@ -111,7 +125,7 @@ static int _add_resource(saul_reg_t *dev, int idx)
     /* Parse the SAUL_CLASS for the URI */
     char url[NANOCOAP_URL_MAX];
     const char *class = saul_class_to_str(dev->driver->type);
-    _saul_class_to_uri(class, url);
+    _saul_class_to_uri(class, url, idx);
 
     printf("url: %s\n", url);
 
@@ -125,7 +139,7 @@ static int _add_resource(saul_reg_t *dev, int idx)
     /* Adds to pairing list */
     saul_coap_t pair;
     strcpy(pair.url, url);
-    pair.dev = dev;
+    pair.num = idx;
     _pairs[idx] = pair;
 
     /* Adds the device to resource list */
