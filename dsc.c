@@ -10,15 +10,15 @@
  * FIXME: tis the right way to use structs?
  */
 typedef struct {
-    char url[NANOCOAP_URL_MAX];		/**< URL of device */
-    saul_reg_t *dev;			/**< Corresponding device */
+    const char *url;		/**< URL of device */
+    saul_reg_t *dev;		/**< Corresponding device */
 } saul_coap_t;
 
 /* Pairings of URI and devices */
-static saul_coap_t _pairs[10];
+static saul_coap_t _pairs[15];
 
 /* Additional CoAP resources to declare */
-static coap_resource_t _resources[10];
+static coap_resource_t _resources[15];
 
 static gcoap_listener_t _listener = {
     &_resources[0],
@@ -67,29 +67,9 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
     switch(method_flag) {
         case COAP_GET:
             gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
-
-	    /* get sensor_val from current sensor */
-	    phydat_t res;
-	    uint16_t dim = saul_reg_read(&dev, &res);
-
-	    /*
-	     * sensor values can be more than one dimensions.
-	     * Pack all results/dimensions in one line string
-	     */
-	    char *sensor_val = 0;
-	    ssize_t payload_len = 0;
-	    for (int i = dim; i > 0; i--) {
-	        sensor_val += res.val[i];
-
-	        /* count the length at the same time */
-	        payload_len += sizeof(res.val[i]);
-	    }
-
-            /* write the response buffer with the sensor value */
-	    sprintf((char *)pdu->payload, "%s", sensor_val);
 	    
-	    ///* Just returns 0 as dummy for now */
-	    //size_t payload_len = fmt_u16_dec((char *)pdu->payload, 0);
+	    /* Just returns 0 as dummy for now */
+	    size_t payload_len = fmt_u16_dec((char *)pdu->payload, 0);
 
             return gcoap_finish(pdu, payload_len, COAP_FORMAT_TEXT);
 
@@ -132,6 +112,8 @@ static int _add_resource(saul_reg_t *dev, int idx)
     char url[NANOCOAP_URL_MAX];
     _saul_class_to_uri(saul_class_to_str(dev->driver->type), url);
 
+    printf("url: %s\n", url);
+
     /* Get ops for the device */
     int ops = COAP_GET;
     if (dev->driver->write){
@@ -139,17 +121,19 @@ static int _add_resource(saul_reg_t *dev, int idx)
     }
 
     /* Adds the device to resource list */
-    coap_resource_t rsc;
-    rsc.path = url;
-    rsc.methods = ops;
-    rsc.handler = _generic_handler;
-    rsc.context = NULL;
+    coap_resource_t rsc = {
+	    .path = (const char *)url,
+	    .methods = ops,
+	    .handler = _generic_handler,
+	    .context = NULL
+    };
     _resources[idx] = rsc;
 
     /* Adds to pairing list */
-    saul_coap_t pair;
-    strcpy(pair.url, (const char *)url);
-    pair.dev = dev;
+    saul_coap_t pair = {
+	.url = (const char *)url,
+	.dev = dev
+    };
     _pairs[idx] = pair;
 
     return 0;
@@ -164,12 +148,15 @@ static void _add_devs_to_resources(void)
 
     /* FIXME: currently adds all available devices to resources list.
      * How to avoid duplicates?
+     * FIXME: resources must be sorted alphabetically based on resource paths 
      */
     saul_reg_t *reg = saul_reg;
-    while (reg->next) {
-        saul_reg_t* dev = reg->next;
-	_add_resource(dev, idx);
+    while (reg) {
+	_add_resource(reg, idx);
+	reg = reg->next;
+	idx++;
     }
+
 }
 
 int dsc_init(int argc, char **argv)
@@ -180,6 +167,7 @@ int dsc_init(int argc, char **argv)
     puts("Init dsc");
     _add_devs_to_resources();
     gcoap_register_listener(&_listener);
+    puts("finish init dsc");
 
     return 0;
 }

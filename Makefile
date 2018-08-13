@@ -40,7 +40,7 @@ USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
 # Add SAUL
-USEMODULE += saul_reg
+USEMODULE += saul_default
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the
