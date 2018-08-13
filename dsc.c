@@ -6,15 +6,14 @@
 
 /*
  * Struct pairing to hold corresponding pair of URI
- * with the device together
- * FIXME: tis the right way to use structs?
+ * with the device num together
  */
 typedef struct {
     char url[NANOCOAP_URL_MAX];		/**< URL of device */
-    uint8_t num;		/**< Corresponding device */
+    uint8_t num;			/**< Corresponding device */
 } saul_coap_t;
 
-/* Pairings of URI and devices */
+/* Pairings of URI and device numbers */
 static saul_coap_t _pairs[15];
 
 /* Additional CoAP resources to declare */
@@ -41,7 +40,6 @@ static int _get_devnum(const char *url)
 
 /*
  * Generic handler for the resources. Accepts either a GET or a PUT.
- * Ideally, this can be extended for specific task.
  * Only read or write values for now.
  */
 static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void *ctx)
@@ -55,13 +53,13 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
     int num = _get_devnum((const char *)pdu->url);
     if (num < 0) {
 	    printf("_generic_handler: cannot find dev with URI %s\n", pdu->url);
-	    return -ENODEV;
+	    return -1;
     }
 
     dev = saul_reg_find_nth(num);
     if (dev == NULL) {
         puts("error: undefined device id (num) given");
-        return -ENODEV;
+        return -1;
     }
 
     /* read coap method type in packet */
@@ -89,17 +87,18 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
             return gcoap_finish(pdu, strlen(read_val), COAP_FORMAT_TEXT);
 
         case COAP_PUT:
-	    /* read payload from pdu */
+	    /* parse payload */
 	    printf(" ");  // for the error label statement
 	    char payload[10];
 	    memcpy(payload, (char *)pdu->payload, pdu->payload_len);
 	    uint16_t write_val = (uint16_t)strtoul(payload, NULL, 10);
 
+	    // TODO: write for multiple dimension data
 	    /* write to device */
 	    phydat_t data;
+
 	    memset(&data, 0, sizeof(data));
 	    data.val[0] = write_val;
-
             dim = saul_reg_write(dev, &data);
             if (dim <= 0) {
                 if (dim == -ENOTSUP) {
@@ -119,7 +118,7 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
 
 static int _saul_class_to_uri(const char *class, char *uri, int num)
 {
-	/* prepend '/' at the start */
+	/* prepend '/' at the start, num at the end*/
 	sprintf(uri, "/%s/%i", class, num);
 
 	for (uint8_t i = 0; i < strlen(uri); i++) {
@@ -147,8 +146,6 @@ static int _add_resource(saul_reg_t *dev, int idx)
     char url[NANOCOAP_URL_MAX];
     const char *class = saul_class_to_str(dev->driver->type);
     _saul_class_to_uri(class, url, idx);
-
-    printf("url: %s\n", url);
 
     /* Get ops for the device */
     int ops = COAP_GET;
@@ -200,10 +197,8 @@ int dsc_init(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    puts("Init dsc");
     _add_devs_to_resources();
     gcoap_register_listener(&_listener);
-    puts("finish init dsc");
 
     return 0;
 }
