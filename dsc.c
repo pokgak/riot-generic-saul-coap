@@ -10,7 +10,7 @@
  * FIXME: tis the right way to use structs?
  */
 typedef struct {
-    const char *url;		/**< URL of device */
+    char url[NANOCOAP_URL_MAX];		/**< URL of device */
     saul_reg_t *dev;		/**< Corresponding device */
 } saul_coap_t;
 
@@ -85,7 +85,7 @@ static int _saul_class_to_uri(const char *class, char *uri)
 {
 	/* prepend '/' at the start */
 	sprintf(uri, "/%s", class);
-
+	printf("uri: %s\n", uri);
 
 	for (uint8_t i = 0; i < strlen(uri); i++) {
 		/* replace any '_' with / */
@@ -110,7 +110,8 @@ static int _add_resource(saul_reg_t *dev, int idx)
 {
     /* Parse the SAUL_CLASS for the URI */
     char url[NANOCOAP_URL_MAX];
-    _saul_class_to_uri(saul_class_to_str(dev->driver->type), url);
+    const char *class = saul_class_to_str(dev->driver->type);
+    _saul_class_to_uri(class, url);
 
     printf("url: %s\n", url);
 
@@ -120,21 +121,21 @@ static int _add_resource(saul_reg_t *dev, int idx)
 	    ops |= COAP_PUT; /* TODO: how about COAP_POST? */
     }
 
+    /* TODO: standardise assignment of structs */
+    /* Adds to pairing list */
+    saul_coap_t pair;
+    strcpy(pair.url, url);
+    pair.dev = dev;
+    _pairs[idx] = pair;
+
     /* Adds the device to resource list */
     coap_resource_t rsc = {
-	    .path = (const char *)url,
+	    .path = _pairs[idx].url,
 	    .methods = ops,
 	    .handler = _generic_handler,
 	    .context = NULL
     };
     _resources[idx] = rsc;
-
-    /* Adds to pairing list */
-    saul_coap_t pair = {
-	.url = (const char *)url,
-	.dev = dev
-    };
-    _pairs[idx] = pair;
 
     return 0;
 }
