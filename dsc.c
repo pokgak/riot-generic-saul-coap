@@ -47,6 +47,7 @@ static int _get_devnum(const char *url)
 static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void *ctx)
 {
     (void)ctx;
+    int dim;
 
 
     /* find which sensor we are currently dealing with */
@@ -71,7 +72,6 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
             gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
 	    
 	    /* read from the device */
-	    int dim;
 	    phydat_t res;
 
 	    dim = saul_reg_read(dev, &res);
@@ -89,8 +89,29 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
             return gcoap_finish(pdu, strlen(read_val), COAP_FORMAT_TEXT);
 
         case COAP_PUT:
-	    /* TODO */
-	    break;
+	    /* read payload from pdu */
+	    printf(" ");  // for the error label statement
+	    char payload[10];
+	    memcpy(payload, (char *)pdu->payload, pdu->payload_len);
+	    uint16_t write_val = (uint16_t)strtoul(payload, NULL, 10);
+
+	    /* write to device */
+	    phydat_t data;
+	    memset(&data, 0, sizeof(data));
+	    data.val[0] = write_val;
+
+            dim = saul_reg_write(dev, &data);
+            if (dim <= 0) {
+                if (dim == -ENOTSUP) {
+                    printf("error: device #%i is not writable\n", num);
+                }
+                else {
+                    printf("error: failure to write to device #%i\n", num);
+                }
+                return -1;
+            }
+
+	    return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
     }
 
     return 0;
