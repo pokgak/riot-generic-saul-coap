@@ -39,6 +39,64 @@ static int _get_devnum(const char *url)
 }
 
 /*
+ * Parse the (multidimensional) result res from given phydat_t and
+ * write the value to the char *data
+ */
+static ssize_t _parse_res(uint8_t dim, phydat_t *res, char *data)
+{
+    if (res == NULL || dim > PHYDAT_DIM) {
+        puts("Unable to display data object");
+        return -1;
+    }
+    sprintf(data, "Data:");
+    for (uint8_t i = 0; i < dim; i++) {
+        char scale_prefix;
+
+        switch (res->unit) {
+            case UNIT_UNDEF:
+            case UNIT_NONE:
+            case UNIT_M2:
+            case UNIT_M3:
+            case UNIT_PERCENT:
+            case UNIT_TEMP_C:
+            case UNIT_TEMP_F:
+                /* no string conversion */
+                scale_prefix = '\0';
+                break;
+            default:
+                scale_prefix = phydat_prefix_from_scale(res->scale);
+        }
+
+        sprintf(data + strlen(data), "\t");
+        if (dim > 1) {
+            sprintf(data + strlen(data), "[%u] ", (unsigned int)i);
+        }
+        else {
+            sprintf(data + strlen(data), "     ");
+        }
+        if (scale_prefix) {
+            sprintf(data + strlen(data), "%6d %c", (int)res->val[i], scale_prefix);
+        }
+        else if (res->scale == 0) {
+            sprintf(data + strlen(data), "%6d", (int)res->val[i]);
+        }
+        else if ((res->scale > -5) && (res->scale < 0)) {
+            char num[8];
+            size_t len = fmt_s16_dfp(num, res->val[i], res->scale);
+            num[len] = '\0';
+            sprintf(data + strlen(data), "%s", num);
+        }
+        else {
+            sprintf(data + strlen(data), "%iE%i", (int)res->val[i], (int)res->scale);
+        }
+
+        sprintf(data + strlen(data), "%s\n", phydat_unit_to_str(res->unit));
+    }
+
+    return 0;
+}
+
+/*
  * Generic handler for the resources. Accepts either a GET or a PUT.
  * Only read or write values for now.
  */
@@ -80,11 +138,11 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
 
 	    // TODO: Handling of devices with triple dimension data value
 	    /* write value read to response buffer */
-	    char read_val[50];
-	    sprintf(read_val, "%d %s", res.val[0], phydat_unit_to_str(res.unit));
-	    memcpy(pdu->payload, read_val, strlen(read_val));
+	    char data[50];
+	    _parse_res(dim, &res, data);
+	    memcpy(pdu->payload, data, strlen(data));
 
-            return gcoap_finish(pdu, strlen(read_val), COAP_FORMAT_TEXT);
+            return gcoap_finish(pdu, strlen(data), COAP_FORMAT_TEXT);
 
         case COAP_PUT:
 	    /* parse payload */
@@ -95,11 +153,11 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
 
 	    // TODO: write for multiple dimension data
 	    /* write to device */
-	    phydat_t data;
+	    phydat_t resp;
 
-	    memset(&data, 0, sizeof(data));
-	    data.val[0] = write_val;
-            dim = saul_reg_write(dev, &data);
+	    memset(&resp, 0, sizeof(resp));
+	    resp.val[0] = write_val;
+            dim = saul_reg_write(dev, &resp);
             if (dim <= 0) {
                 if (dim == -ENOTSUP) {
                     printf("error: device #%i is not writable\n", num);
