@@ -1,18 +1,18 @@
-#ifndef DSC_H
-#define DSC_H
+#ifndef GSC_H
+#define GSC_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*
- * Struct pairing to hold corresponding pair of URI
- * with the device num together
+ * Struct pairing to hold information about
+ * registered resource
  */
-typedef struct {
+typedef struct gsc_rsc {
     char url[NANOCOAP_URL_MAX];		/**< URL of device */
     uint8_t num;			/**< Corresponding device */
-} saul_coap_t;
+} gsc_t;
 
 #ifdef __cplusplus
 }

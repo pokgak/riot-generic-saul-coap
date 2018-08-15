@@ -3,17 +3,17 @@
 #include "net/gcoap.h"
 #include "fmt.h"
 #include "saul_reg.h"
-#include "dsc.h"
+#include "gsc.h"
 
-/* Pairings of URI and device numbers */
-static saul_coap_t _pairs[15];
+/* Registered resources entries */
+static gsc_t _rsc_entries[15];
 
 /*
- * Parses URL for device num. Used to retrieve * device from registry
+ * Parses URL for device num. Used to retrieve device from saul registry
  */
 static int _get_devnum(const char *url)
 {
-	char *start = strrchr(url, '/');	
+	char *start = strrchr(url, '/');
 	if (start)
 		return atoi((const char *) (start + 1));
 	else
@@ -108,7 +108,7 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
     switch(method_flag) {
         case COAP_GET:
             gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
-	    
+
 	    /* read from the device */
 	    phydat_t res;
 
@@ -118,7 +118,6 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
 		    return -1;
 	    }
 
-	    // TODO: Handling of devices with triple dimension data value
 	    /* write value read to response buffer */
 	    char data[50];
 	    _parse_res(dim, &res, data);
@@ -177,10 +176,8 @@ static int _saul_class_to_uri(const char *class, char *uri, int num)
  * Adds dev to the resource array _resources.
  * Parses the URI from the SAUL_CLASS.
  * Uses _generic_handler for the handler.
- *
- * TODO: Change idx to something better
  */
-int dsc_init(coap_resource_t *resources)
+int gsc_init(coap_resource_t *resources)
 {
     int idx = 0;
 
@@ -191,7 +188,7 @@ int dsc_init(coap_resource_t *resources)
     saul_reg_t *reg = saul_reg;
     while (reg) {
         /* Parse the SAUL_CLASS for the URI */
-        char url[NANOCOAP_URL_MAX];
+        char url[NANOCOAP_URI_MAX]; // FIXME: URI longer than '/sense/temp/7' can't be processed
         const char *class = saul_class_to_str(reg->driver->type);
         _saul_class_to_uri(class, url, idx);
 
@@ -201,12 +198,12 @@ int dsc_init(coap_resource_t *resources)
                 ops |= COAP_PUT; /* TODO: how about COAP_POST? */
         }
 
-        /* Adds to pairing list */
-	strcpy(_pairs[idx].url, url);
-	_pairs[idx].num = idx;
+        /* Adds to registered resources list */
+	strcpy(_rsc_entries[idx].url, url);
+	_rsc_entries[idx].num = idx;
 
         /* Adds the device to resource list */
-	resources[idx].path = _pairs[idx].url;
+	resources[idx].path = _rsc_entries[idx].url;
 	resources[idx].methods = ops;
 	resources[idx].handler = _generic_handler;
 	resources[idx].context = NULL;

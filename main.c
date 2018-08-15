@@ -13,19 +13,20 @@ static coap_resource_t _resources[15];
 
 extern int gcoap_cli_cmd(int argc, char **argv);
 extern void gcoap_cli_init(void);
-extern int dsc_init(coap_resource_t *resources); 
+extern int gsc_init(coap_resource_t *resources); 
+
 static gcoap_listener_t _listener = {
     &_resources[0],
     sizeof(_resources) / sizeof(_resources[0]),
     NULL
 };
 
-int dsc_handler(int argc, char **argv)
+int gsc_handler(int argc, char **argv)
 {
     (void)argc;
     (void)argv;
 
-    dsc_init(_resources);
+    gsc_init(_resources);
     gcoap_register_listener(&_listener);
 
     return 0;
@@ -33,7 +34,7 @@ int dsc_handler(int argc, char **argv)
 
 static const shell_command_t shell_commands[] = {
     { "coap", "CoAP example", gcoap_cli_cmd },
-    { "dsc", "init dsc", dsc_handler },
+    { "gsc", "init gsc", gsc_handler },
     { NULL, NULL, NULL }
 };
 
