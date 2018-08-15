@@ -126,6 +126,7 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
             return gcoap_finish(pdu, strlen(data), COAP_FORMAT_TEXT);
 
         case COAP_PUT:
+	case COAP_POST:
 	    /* parse payload */
 	    printf(" ");  // for the error label statement
 	    char payload[10];
@@ -195,7 +196,8 @@ int gsc_init(coap_resource_t *resources)
         /* Get ops for the device */
         int ops = COAP_GET;
         if (reg->driver->write){
-                ops |= COAP_PUT; /* TODO: how about COAP_POST? */
+		ops |= COAP_PUT;
+		ops |= COAP_POST;
         }
 
         /* Adds url to list */
