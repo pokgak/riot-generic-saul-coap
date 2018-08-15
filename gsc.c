@@ -3,10 +3,10 @@
 #include "net/gcoap.h"
 #include "fmt.h"
 #include "saul_reg.h"
-#include "gsc.h"
 
-/* Registered resources entries */
-static gsc_t _rsc_entries[15];
+#define NUM_URLS (15)
+
+static char _urls[NUM_URLS][NANOCOAP_URL_MAX];
 
 /*
  * Parses URL for device num. Used to retrieve device from saul registry
@@ -198,12 +198,11 @@ int gsc_init(coap_resource_t *resources)
                 ops |= COAP_PUT; /* TODO: how about COAP_POST? */
         }
 
-        /* Adds to registered resources list */
-	strcpy(_rsc_entries[idx].url, url);
-	_rsc_entries[idx].num = idx;
+        /* Adds url to list */
+	strcpy(_urls[idx], url);
 
         /* Adds the device to resource list */
-	resources[idx].path = _rsc_entries[idx].url;
+	resources[idx].path = _urls[idx];
 	resources[idx].methods = ops;
 	resources[idx].handler = _generic_handler;
 	resources[idx].context = NULL;
