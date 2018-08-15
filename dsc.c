@@ -201,21 +201,15 @@ int dsc_init(coap_resource_t *resources)
                 ops |= COAP_PUT; /* TODO: how about COAP_POST? */
         }
 
-        /* TODO: standardise assignment of structs */
         /* Adds to pairing list */
-        saul_coap_t pair;
-        strcpy(pair.url, url);
-        pair.num = idx;
-        _pairs[idx] = pair;
+	strcpy(_pairs[idx].url, url);
+	_pairs[idx].num = idx;
 
         /* Adds the device to resource list */
-        coap_resource_t rsc = {
-                .path = _pairs[idx].url,
-                .methods = ops,
-                .handler = _generic_handler,
-                .context = NULL
-        };
-        resources[idx] = rsc;
+	resources[idx].path = _pairs[idx].url;
+	resources[idx].methods = ops;
+	resources[idx].handler = _generic_handler;
+	resources[idx].context = NULL;
 
 	/* get next reg */
 	reg = reg->next;
