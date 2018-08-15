@@ -3,15 +3,7 @@
 #include "net/gcoap.h"
 #include "fmt.h"
 #include "saul_reg.h"
-
-/*
- * Struct pairing to hold corresponding pair of URI
- * with the device num together
- */
-typedef struct {
-    char url[NANOCOAP_URL_MAX];		/**< URL of device */
-    uint8_t num;			/**< Corresponding device */
-} saul_coap_t;
+#include "dsc.h"
 
 /* Pairings of URI and device numbers */
 static saul_coap_t _pairs[15];
