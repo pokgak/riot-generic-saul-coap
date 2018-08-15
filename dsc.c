@@ -8,18 +8,8 @@
 /* Pairings of URI and device numbers */
 static saul_coap_t _pairs[15];
 
-/* Additional CoAP resources to declare */
-static coap_resource_t _resources[15];
-
-static gcoap_listener_t _listener = {
-    &_resources[0],
-    sizeof(_resources) / sizeof(_resources[0]),
-    NULL
-};
-
 /*
- * Parses URL for device num. Used to retrieve
- * device from registry
+ * Parses URL for device num. Used to retrieve * device from registry
  */
 static int _get_devnum(const char *url)
 {
@@ -190,42 +180,7 @@ static int _saul_class_to_uri(const char *class, char *uri, int num)
  *
  * TODO: Change idx to something better
  */
-static int _add_resource(saul_reg_t *dev, int idx)
-{
-    /* Parse the SAUL_CLASS for the URI */
-    char url[NANOCOAP_URL_MAX];
-    const char *class = saul_class_to_str(dev->driver->type);
-    _saul_class_to_uri(class, url, idx);
-
-    /* Get ops for the device */
-    int ops = COAP_GET;
-    if (dev->driver->write){
-	    ops |= COAP_PUT; /* TODO: how about COAP_POST? */
-    }
-
-    /* TODO: standardise assignment of structs */
-    /* Adds to pairing list */
-    saul_coap_t pair;
-    strcpy(pair.url, url);
-    pair.num = idx;
-    _pairs[idx] = pair;
-
-    /* Adds the device to resource list */
-    coap_resource_t rsc = {
-	    .path = _pairs[idx].url,
-	    .methods = ops,
-	    .handler = _generic_handler,
-	    .context = NULL
-    };
-    _resources[idx] = rsc;
-
-    return 0;
-}
-
-/*
- * Finds devices available and adds it to the resources list
- */
-static void _add_devs_to_resources(void)
+int dsc_init(coap_resource_t *resources)
 {
     int idx = 0;
 
@@ -235,20 +190,36 @@ static void _add_devs_to_resources(void)
      */
     saul_reg_t *reg = saul_reg;
     while (reg) {
-	_add_resource(reg, idx);
+        /* Parse the SAUL_CLASS for the URI */
+        char url[NANOCOAP_URL_MAX];
+        const char *class = saul_class_to_str(reg->driver->type);
+        _saul_class_to_uri(class, url, idx);
+
+        /* Get ops for the device */
+        int ops = COAP_GET;
+        if (reg->driver->write){
+                ops |= COAP_PUT; /* TODO: how about COAP_POST? */
+        }
+
+        /* TODO: standardise assignment of structs */
+        /* Adds to pairing list */
+        saul_coap_t pair;
+        strcpy(pair.url, url);
+        pair.num = idx;
+        _pairs[idx] = pair;
+
+        /* Adds the device to resource list */
+        coap_resource_t rsc = {
+                .path = _pairs[idx].url,
+                .methods = ops,
+                .handler = _generic_handler,
+                .context = NULL
+        };
+        resources[idx] = rsc;
+
+	/* get next reg */
 	reg = reg->next;
 	idx++;
     }
-
-}
-
-int dsc_init(int argc, char **argv)
-{
-    (void)argc;
-    (void)argv;
-
-    _add_devs_to_resources();
-    gcoap_register_listener(&_listener);
-
     return 0;
 }
