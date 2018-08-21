@@ -15,7 +15,7 @@ extern int gcoap_cli_cmd(int argc, char **argv);
 extern void gcoap_cli_init(void);
 extern int gsc_init(coap_resource_t *resources); 
 
-extern int _get_base_url(void);
+extern int _get_base_url(char *baseurl);
 
 static gcoap_listener_t _listener = {
     &_resources[0],
@@ -28,7 +28,8 @@ int test_td(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    _get_base_url();
+    char baseurl[IPV6_ADDR_MAX_STR_LEN];
+    _get_base_url(baseurl);
 
     return 0;
 }

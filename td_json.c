@@ -4,9 +4,8 @@
 #include "net/gnrc.h"
 #include "net/gnrc/netapi.h"
 
-int _get_base_url(void)
+int _get_base_url(char *baseurl)
 {
-    char addr_str[IPV6_ADDR_MAX_STR_LEN];
     ipv6_addr_t ipv6_addrs[GNRC_NETIF_IPV6_ADDRS_NUMOF];
 
     /* get iface pid */
@@ -16,15 +15,15 @@ int _get_base_url(void)
 	/* get the all available ipv6 adresses */
 	int res = gnrc_netapi_get(netif->pid, NETOPT_IPV6_ADDR, 0, ipv6_addrs,
 			sizeof(ipv6_addrs));
-	if (res) {
+	if (res < 0) {
 	    /* handle error */
+            return -1;
 	}
 	for (unsigned i = 0; i < (res / sizeof(ipv6_addr_t)); i++) {
-            ipv6_addr_to_str(addr_str, ipv6_addrs, sizeof(addr_str));
-            printf("baseurl: %s\n", addr_str);
+            ipv6_addr_to_str(baseurl, ipv6_addrs, IPV6_ADDR_MAX_STR_LEN);
+            printf("baseurl: %s\n", baseurl);
 	}
     }
-
 
     return 0;
 }
