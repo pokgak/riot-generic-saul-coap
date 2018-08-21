@@ -15,11 +15,23 @@ extern int gcoap_cli_cmd(int argc, char **argv);
 extern void gcoap_cli_init(void);
 extern int gsc_init(coap_resource_t *resources); 
 
+extern int _get_base_url(void);
+
 static gcoap_listener_t _listener = {
     &_resources[0],
     sizeof(_resources) / sizeof(_resources[0]),
     NULL
 };
+
+int test_td(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+
+    _get_base_url();
+
+    return 0;
+}
 
 int gsc_handler(int argc, char **argv)
 {
@@ -35,6 +47,7 @@ int gsc_handler(int argc, char **argv)
 static const shell_command_t shell_commands[] = {
     { "coap", "CoAP example", gcoap_cli_cmd },
     { "gsc", "init gsc", gsc_handler },
+    { "td", "test TD components", test_td },
     { NULL, NULL, NULL }
 };
 
