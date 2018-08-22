@@ -35,7 +35,7 @@ int test_td(int argc, char **argv)
     char baseurl[IPV6_ADDR_MAX_STR_LEN];
     _get_base_url(baseurl);
 
-    char *url = "/sense/switch/0";
+    char *url = "/0/sense/switch";
     const char *type = _get_type(url);
     printf("type: %s\n", type);
 
