@@ -159,9 +159,9 @@ static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void 
 static int _saul_class_to_uri(const char *class, char *uri, int num)
 {
 	/* prepend '/' at the start, num at the end*/
-	sprintf(uri, "/%s/%i", class, num);
+	sprintf(uri, "/%i/%s", num, class);
 
-	for (uint8_t i = 0; i < strlen(uri); i++) {
+	for (int i = 0; i < (int) strlen(uri); i++) {
 		/* replace any '_' with / */
 		if (uri[i] == '_')
 		    uri[i] = '/';
@@ -170,6 +170,7 @@ static int _saul_class_to_uri(const char *class, char *uri, int num)
 		    uri[i] = (char)tolower((int)uri[i]);
 	}
 
+        printf("uri: %s\n", uri);
 	return 0;
 }
 
