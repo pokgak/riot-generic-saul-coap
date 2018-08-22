@@ -27,3 +27,22 @@ int _get_base_url(char *baseurl)
 
     return 0;
 }
+
+const char *_get_type(char *url)
+{
+    char *start = url + 1;
+    char *last = strchr((const char *)start, '/');
+    char type[10];
+    snprintf(type, (size_t) (last - start + 1), "%s", start);
+    printf("type: %s\n", type);
+
+    if (strcmp(type, "act") == 0) {
+        return "Actuator";
+    }
+    else if (strcmp(type, "sense") == 0) {
+        return "Sensor";
+    }
+    else {
+        return "INVALID_TYPE";
+    }
+}

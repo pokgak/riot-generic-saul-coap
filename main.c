@@ -16,6 +16,7 @@ extern void gcoap_cli_init(void);
 extern int gsc_init(coap_resource_t *resources); 
 
 extern int _get_base_url(char *baseurl);
+extern const char *_get_type(char *url);
 
 static gcoap_listener_t _listener = {
     &_resources[0],
@@ -30,6 +31,10 @@ int test_td(int argc, char **argv)
 
     char baseurl[IPV6_ADDR_MAX_STR_LEN];
     _get_base_url(baseurl);
+
+    char *url = "/sense/switch/0";
+    const char *type = _get_type(url);
+    printf("type: %s\n", type);
 
     return 0;
 }
