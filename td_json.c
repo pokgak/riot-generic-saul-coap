@@ -33,10 +33,11 @@ int _get_base_url(char *baseurl)
 
 const char *_get_type(char *url)
 {
-    char *start = url + 1;
-    char *last = strchr((const char *)start, '/');
     char type[10];
+    char *start = 1 + strchr((const char *)url + 1, '/');
+    char *last = strchr((const char *)start + 1, '/');
     snprintf(type, (size_t) (last - start + 1), "%s", start);
+    printf("type: %s\n", type);
 
     if (strcmp(type, "act") == 0) {
         return "Actuator";
@@ -51,10 +52,11 @@ const char *_get_type(char *url)
 
 const char *_get_name(char *url)
 {
-    char *start = strchr((const char *) (url + 1), '/');
-    char *last = strrchr((const char *) url, '/');
     char name[20];
-    snprintf(name, (size_t) (last - start), "%s", start + 1);
+    char *start = strrchr((const char *) url, '/');
+    char *last = url + strlen(url);
+    snprintf(name, (ssize_t) (last - start), "%s", start + 1);
+    printf("name: %s\n", name);
 
     /* this can be better */
     if (strcmp(name, "switch") == 0)
