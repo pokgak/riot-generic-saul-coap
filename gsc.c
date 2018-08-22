@@ -13,11 +13,12 @@ static char _urls[NUM_URLS][NANOCOAP_URL_MAX];
  */
 static int _get_devnum(const char *url)
 {
-	char *start = strrchr(url, '/');
-	if (start)
-		return atoi((const char *) (start + 1));
-	else
-		return -ENODEV;
+    char num[4];
+    /* skip the first '/' in url */
+    const char *start = url + 1;
+    const char *last = strchr(start, '/');
+    snprintf(num, (ssize_t) (last - start + 1), "%s", start);
+    return atoi((const char *) num);
 }
 
 /*
