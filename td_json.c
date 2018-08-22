@@ -65,16 +65,56 @@ const char *_get_name(char *url)
         return "INVALID_NAME";
 }
 
+const char *_is_writable(char *url)
+{
+    (void)url;
+    return "false";
+}
+
+const char *_is_observable(char *url)
+{
+    (void)url;
+    return "true";
+}
+
+const char *_get_href(char *url)
+{
+    (void)url;
+    return "val";
+}
+
+const char *_get_media_type(char *url)
+{
+    (void)url;
+    return "application/json";
+}
+
 int get_td(char *url)
 {
-    char td[256];
+    char td[512];  // FIXME: got stack smashing when td[256]
     char baseurl[IPV6_ADDR_MAX_STR_LEN];
+    _get_base_url(baseurl);
 
     sprintf(td, "{\n");
-    sprintf(td + strlen(td), "\t\"@context\": [\"%s\"],\n", TD_CONTEXT);
-    sprintf(td + strlen(td), "\t\"@type\": [\"%s\"],\n", _get_type(url));
-    sprintf(td + strlen(td), "\t\"name\": \"%s\",\n", _get_name(url));
-    sprintf(td + strlen(td), "\t\"base\": \"coap://%s:%s/\",\n", baseurl, PORT);
+    sprintf(td + strlen(td), "  \"@context\": [\"%s\"],\n", TD_CONTEXT);
+    sprintf(td + strlen(td), "  \"@type\": [\"%s\"],\n", _get_type(url));
+    sprintf(td + strlen(td), "  \"name\": \"%s\",\n", _get_name(url));
+    sprintf(td + strlen(td), "  \"base\": \"coap://%s:%s/\",\n", baseurl, PORT);
+    sprintf(td + strlen(td), "  \"interaction\": [\n");
+    sprintf(td + strlen(td), "    {\n");
+    sprintf(td + strlen(td), "      \"@type\": [\"Property\", \"%s\"],\n", _get_name(url));
+    sprintf(td + strlen(td), "      \"schema\": {\n");
+    sprintf(td + strlen(td), "        \"type\": \"number\"\n");
+    sprintf(td + strlen(td), "      },\n");
+    sprintf(td + strlen(td), "      \"writable\": %s,\n", _is_writable(url));
+    sprintf(td + strlen(td), "      \"observable\": %s,\n", _is_observable(url));
+    sprintf(td + strlen(td), "      \"form\": [{\n");
+    sprintf(td + strlen(td), "        \"href\": \"%s\",\n", _get_href(url));
+    sprintf(td + strlen(td), "        \"mediaType\": \"%s\"\n", _get_media_type(url));
+    sprintf(td + strlen(td), "      }]\n");
+    sprintf(td + strlen(td), "    }\n");
+    sprintf(td + strlen(td), "  ]\n");
+    sprintf(td + strlen(td), "}\n");
 
     printf("%s", td);
 
