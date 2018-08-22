@@ -5,7 +5,7 @@
 #include "net/gnrc/netapi.h"
 
 #define TD_CONTEXT "https://w3c.github.io/wot/w3c-wot-td-context.jsonld"
-#define PORT "5683"
+#define GSC_PORT "5683"
 
 int _get_base_url(char *baseurl)
 {
@@ -31,7 +31,7 @@ int _get_base_url(char *baseurl)
     return 0;
 }
 
-const char *_get_type(char *url)
+const char *_get_type(const char *url)
 {
     char type[10];
     char *start = 1 + strchr((const char *)url + 1, '/');
@@ -50,11 +50,11 @@ const char *_get_type(char *url)
     }
 }
 
-const char *_get_name(char *url)
+const char *_get_name(const char *url)
 {
     char name[20];
     char *start = strrchr((const char *) url, '/');
-    char *last = url + strlen(url);
+    char *last = (char *) (url + strlen(url));
     snprintf(name, (ssize_t) (last - start), "%s", start + 1);
     printf("name: %s\n", name);
 
@@ -67,31 +67,31 @@ const char *_get_name(char *url)
         return "INVALID_NAME";
 }
 
-const char *_is_writable(char *url)
+const char *_is_writable(const char *url)
 {
     (void)url;
     return "false";
 }
 
-const char *_is_observable(char *url)
+const char *_is_observable(const char *url)
 {
     (void)url;
     return "true";
 }
 
-const char *_get_href(char *url)
+const char *_get_href(const char *url)
 {
     (void)url;
     return "val";
 }
 
-const char *_get_media_type(char *url)
+const char *_get_media_type(const char *url)
 {
     (void)url;
     return "application/json";
 }
 
-int get_td(char *url)
+ssize_t get_td(const char *url)
 {
     char td[512];  // FIXME: got stack smashing when td[256]
     char baseurl[IPV6_ADDR_MAX_STR_LEN];
@@ -101,7 +101,7 @@ int get_td(char *url)
     sprintf(td + strlen(td), "  \"@context\": [\"%s\"],\n", TD_CONTEXT);
     sprintf(td + strlen(td), "  \"@type\": [\"%s\"],\n", _get_type(url));
     sprintf(td + strlen(td), "  \"name\": \"%s\",\n", _get_name(url));
-    sprintf(td + strlen(td), "  \"base\": \"coap://%s:%s/\",\n", baseurl, PORT);
+    sprintf(td + strlen(td), "  \"base\": \"coap://%s:%s/\",\n", baseurl, GSC_PORT);
     sprintf(td + strlen(td), "  \"interaction\": [\n");
     sprintf(td + strlen(td), "    {\n");
     sprintf(td + strlen(td), "      \"@type\": [\"Property\", \"%s\"],\n", _get_name(url));
@@ -120,5 +120,5 @@ int get_td(char *url)
 
     printf("%s", td);
 
-    return 0;
+    return strlen(td);
 }

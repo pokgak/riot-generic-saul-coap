@@ -6,7 +6,10 @@
 
 #define NUM_URLS (15)
 
-static char _urls[NUM_URLS][NANOCOAP_URL_MAX];
+extern ssize_t get_td(const char *url);
+
+static char _td_urls[NUM_URLS][NANOCOAP_URL_MAX];
+static char _val_urls[NUM_URLS][NANOCOAP_URL_MAX];
 
 /*
  * Parses URL for device num. Used to retrieve device from saul registry
@@ -79,11 +82,31 @@ static ssize_t _parse_res(uint8_t dim, phydat_t *res, char *data)
     return 0;
 }
 
+static ssize_t _generic_td_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void *ctx)
+{
+    (void)ctx;
+    (void)buf;  /* ignore old buffer */
+    (void)len;  /* ignore old len */
+
+    unsigned method_flag = coap_method2flag(coap_get_code_detail(pdu));
+    if (method_flag == COAP_PUT || method_flag == COAP_GET) {
+        // TODO: return error
+    }
+
+    char td[512];
+    ssize_t td_len = get_td((const char *)pdu->url);
+    uint8_t new_buf[GCOAP_PDU_BUF_SIZE + td_len];
+    gcoap_resp_init(pdu, new_buf, GCOAP_PDU_BUF_SIZE + td_len, COAP_CODE_CONTENT);
+    memcpy(pdu->payload, td, td_len);
+
+    return gcoap_finish(pdu, GCOAP_PDU_BUF_SIZE + td_len, COAP_FORMAT_JSON);
+}
+
 /*
  * Generic handler for the resources. Accepts either a GET or a PUT.
  * Only read or write values for now.
  */
-static ssize_t _generic_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void *ctx)
+static ssize_t _generic_val_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void *ctx)
 {
     (void)ctx;
     int dim;
@@ -191,9 +214,14 @@ int gsc_init(coap_resource_t *resources)
     saul_reg_t *reg = saul_reg;
     while (reg) {
         /* Parse the SAUL_CLASS for the URI */
-        char url[NANOCOAP_URI_MAX]; // FIXME: URI longer than '/sense/temp/7' can't be processed
+        char val_url[NANOCOAP_URL_MAX]; // FIXME: URI longer than '/sense/temp/7' can't be processed
+        char td_url[NANOCOAP_URL_MAX];
         const char *class = saul_class_to_str(reg->driver->type);
-        _saul_class_to_uri(class, url, idx);
+        _saul_class_to_uri(class, td_url, idx);
+        sprintf(val_url, "%s/val", td_url);
+
+        printf("td_url: %s\n", td_url);
+        printf("val_url: %s\n", val_url);
 
         /* Get ops for the device */
         int ops = COAP_GET;
@@ -203,13 +231,20 @@ int gsc_init(coap_resource_t *resources)
         }
 
         /* Adds url to list */
-	strcpy(_urls[idx], url);
+	strcpy(_td_urls[idx], td_url);
+        strcpy(_val_urls[idx], val_url);
 
         /* Adds the device to resource list */
-	resources[idx].path = _urls[idx];
+	resources[idx].path = _td_urls[idx];
 	resources[idx].methods = ops;
-	resources[idx].handler = _generic_handler;
+	resources[idx].handler = _generic_td_handler;
 	resources[idx].context = NULL;
+
+        // FIXME: need something better
+	resources[idx + 15].path = _val_urls[idx];
+	resources[idx + 15].methods = ops;
+	resources[idx + 15].handler = _generic_val_handler;
+	resources[idx + 15].context = NULL;
 
 	/* get next reg */
 	reg = reg->next;

@@ -9,7 +9,7 @@
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
 /* Additional CoAP resources to declare */
-static coap_resource_t _resources[15];
+static coap_resource_t _resources[15 * 2]; /* for td and val */
 
 extern int gcoap_cli_cmd(int argc, char **argv);
 extern void gcoap_cli_init(void);
