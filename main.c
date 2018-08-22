@@ -19,6 +19,7 @@ extern int _get_base_url(char *baseurl);
 extern const char *_get_type(char *url);
 extern const char *_get_name(char *url);
 extern int get_td(char *url);
+//extern int _get_devnum(const char *url);
 
 static gcoap_listener_t _listener = {
     &_resources[0],
@@ -46,6 +47,17 @@ int test_td(int argc, char **argv)
     return 0;
 }
 
+int test_gsc(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+
+    //const char *url = "/0/sense/switch";
+    //_get_devnum(url);
+
+    return 0;
+}
+
 int gsc_handler(int argc, char **argv)
 {
     (void)argc;
@@ -61,6 +73,7 @@ static const shell_command_t shell_commands[] = {
     { "coap", "CoAP example", gcoap_cli_cmd },
     { "gsc", "init gsc", gsc_handler },
     { "td", "test TD components", test_td },
+    { "test_gsc", "test gsc", test_gsc },
     { NULL, NULL, NULL }
 };
 
