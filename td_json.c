@@ -4,6 +4,9 @@
 #include "net/gnrc.h"
 #include "net/gnrc/netapi.h"
 
+#define TD_CONTEXT "https://w3c.github.io/wot/w3c-wot-td-context.jsonld"
+#define PORT "5683"
+
 int _get_base_url(char *baseurl)
 {
     ipv6_addr_t ipv6_addrs[GNRC_NETIF_IPV6_ADDRS_NUMOF];
@@ -34,7 +37,6 @@ const char *_get_type(char *url)
     char *last = strchr((const char *)start, '/');
     char type[10];
     snprintf(type, (size_t) (last - start + 1), "%s", start);
-    printf("type: %s\n", type);
 
     if (strcmp(type, "act") == 0) {
         return "Actuator";
@@ -45,4 +47,36 @@ const char *_get_type(char *url)
     else {
         return "INVALID_TYPE";
     }
+}
+
+const char *_get_name(char *url)
+{
+    char *start = strchr((const char *) (url + 1), '/');
+    char *last = strrchr((const char *) url, '/');
+    char name[20];
+    snprintf(name, (size_t) (last - start), "%s", start + 1);
+
+    /* this can be better */
+    if (strcmp(name, "switch") == 0)
+        return "Switch";
+    else if (strcmp(name, "accel") == 0)
+        return "Accelerator";
+    else
+        return "INVALID_NAME";
+}
+
+int get_td(char *url)
+{
+    char td[256];
+    char baseurl[IPV6_ADDR_MAX_STR_LEN];
+
+    sprintf(td, "{\n");
+    sprintf(td + strlen(td), "\t\"@context\": [\"%s\"],\n", TD_CONTEXT);
+    sprintf(td + strlen(td), "\t\"@type\": [\"%s\"],\n", _get_type(url));
+    sprintf(td + strlen(td), "\t\"name\": \"%s\",\n", _get_name(url));
+    sprintf(td + strlen(td), "\t\"base\": \"coap://%s:%s/\",\n", baseurl, PORT);
+
+    printf("%s", td);
+
+    return 0;
 }

@@ -17,6 +17,8 @@ extern int gsc_init(coap_resource_t *resources);
 
 extern int _get_base_url(char *baseurl);
 extern const char *_get_type(char *url);
+extern const char *_get_name(char *url);
+extern int get_td(char *url);
 
 static gcoap_listener_t _listener = {
     &_resources[0],
@@ -35,6 +37,11 @@ int test_td(int argc, char **argv)
     char *url = "/sense/switch/0";
     const char *type = _get_type(url);
     printf("type: %s\n", type);
+
+    const char *name = _get_name(url);
+    printf("name: %s\n", name);
+
+    get_td(url);
 
     return 0;
 }
