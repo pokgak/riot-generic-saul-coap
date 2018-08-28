@@ -50,4 +50,8 @@ DEVELHELP ?= 1
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
+CFLAGS += -DTHREAD_STACKSIZE_MAIN=2048
+CFLAGS += -DGCOAP_PDU_BUF_SIZE=512
+CFLAGS += -DGCOAP_STACK_SIZE=2048
+
 include $(RIOTBASE)/Makefile.include

@@ -14,12 +14,12 @@ static coap_resource_t _resources[15 * 2]; /* for td and val */
 extern int gcoap_cli_cmd(int argc, char **argv);
 extern void gcoap_cli_init(void);
 extern int gsc_init(coap_resource_t *resources); 
+extern int get_td(char *out, char *url);
 
 extern int _get_base_url(char *baseurl);
+extern int _get_devnum(const char *url);
 extern const char *_get_type(char *url);
 extern const char *_get_name(char *url);
-extern int get_td(char *out, char *url);
-//extern int _get_devnum(const char *url);
 
 static gcoap_listener_t _listener = {
     &_resources[0],
@@ -54,8 +54,8 @@ int test_gsc(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    //const char *url = "/0/sense/switch";
-    //_get_devnum(url);
+    const char *url = "/0/sense/switch";
+    _get_devnum(url);
 
     return 0;
 }

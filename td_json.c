@@ -24,7 +24,6 @@ int _get_base_url(char *baseurl)
 	}
 	for (unsigned i = 0; i < (res / sizeof(ipv6_addr_t)); i++) {
             ipv6_addr_to_str(baseurl, ipv6_addrs, IPV6_ADDR_MAX_STR_LEN);
-            printf("baseurl: %s\n", baseurl);
 	}
     }
 
@@ -37,7 +36,6 @@ const char *_get_type(const char *url)
     char *start = 1 + strchr((const char *)url + 1, '/');
     char *last = strchr((const char *)start + 1, '/');
     snprintf(type, (size_t) (last - start + 1), "%s", start);
-    printf("type: %s\n", type);
 
     if (strcmp(type, "act") == 0) {
         return "Actuator";
@@ -56,7 +54,6 @@ const char *_get_name(const char *url)
     char *start = strrchr((const char *) url, '/');
     char *last = (char *) (url + strlen(url));
     snprintf(name, (ssize_t) (last - start), "%s", start + 1);
-    printf("name: %s\n", name);
 
     /* this can be better */
     if (strcmp(name, "switch") == 0)
@@ -91,9 +88,8 @@ const char *_get_media_type(const char *url)
     return "application/json";
 }
 
-ssize_t get_td(const char *url)
+ssize_t get_td(char *td, const char *url)
 {
-    char td[512];  // FIXME: got stack smashing when td[256]
     char baseurl[IPV6_ADDR_MAX_STR_LEN];
     _get_base_url(baseurl);
 
@@ -117,8 +113,6 @@ ssize_t get_td(const char *url)
     sprintf(td + strlen(td), "    }\n");
     sprintf(td + strlen(td), "  ]\n");
     sprintf(td + strlen(td), "}\n");
-
-    printf("%s", td);
 
     return strlen(td);
 }

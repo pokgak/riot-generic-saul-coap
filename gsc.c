@@ -6,7 +6,7 @@
 
 #define NUM_URLS (15)
 
-extern ssize_t get_td(const char *url);
+extern ssize_t get_td(char *out, const char *url);
 
 static char _td_urls[NUM_URLS][NANOCOAP_URL_MAX];
 static char _val_urls[NUM_URLS][NANOCOAP_URL_MAX];
@@ -14,7 +14,7 @@ static char _val_urls[NUM_URLS][NANOCOAP_URL_MAX];
 /*
  * Parses URL for device num. Used to retrieve device from saul registry
  */
-static int _get_devnum(const char *url)
+int _get_devnum(const char *url)
 {
     char num[4];
     /* skip the first '/' in url */
@@ -85,21 +85,16 @@ static ssize_t _parse_res(uint8_t dim, phydat_t *res, char *data)
 static ssize_t _generic_td_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void *ctx)
 {
     (void)ctx;
-    (void)buf;  /* ignore old buffer */
-    (void)len;  /* ignore old len */
 
     unsigned method_flag = coap_method2flag(coap_get_code_detail(pdu));
-    if (method_flag == COAP_PUT || method_flag == COAP_GET) {
-        // TODO: return error
+    if (method_flag == COAP_PUT || method_flag == COAP_POST) {
+        return -1;
     }
 
-    char td[512];
-    ssize_t td_len = get_td((const char *)pdu->url);
-    uint8_t new_buf[GCOAP_PDU_BUF_SIZE + td_len];
-    gcoap_resp_init(pdu, new_buf, GCOAP_PDU_BUF_SIZE + td_len, COAP_CODE_CONTENT);
-    memcpy(pdu->payload, td, td_len);
+    gcoap_resp_init(pdu, buf,  len, COAP_CODE_CONTENT);
+    ssize_t td_len = get_td((char *)pdu->payload, (const char *)pdu->url);
 
-    return gcoap_finish(pdu, GCOAP_PDU_BUF_SIZE + td_len, COAP_FORMAT_JSON);
+    return gcoap_finish(pdu, td_len, COAP_FORMAT_TEXT);
 }
 
 /*
@@ -110,7 +105,6 @@ static ssize_t _generic_val_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, v
 {
     (void)ctx;
     int dim;
-
 
     /* find which sensor we are currently dealing with */
     saul_reg_t *dev;
@@ -194,7 +188,6 @@ static int _saul_class_to_uri(const char *class, char *uri, int num)
 		    uri[i] = (char)tolower((int)uri[i]);
 	}
 
-        printf("uri: %s\n", uri);
 	return 0;
 }
 
@@ -209,7 +202,6 @@ int gsc_init(coap_resource_t *resources)
 
     /* FIXME: currently adds all available devices to resources list.
      * How to avoid duplicates?
-     * FIXME: resources must be sorted alphabetically based on resource paths 
      */
     saul_reg_t *reg = saul_reg;
     while (reg) {
@@ -219,9 +211,6 @@ int gsc_init(coap_resource_t *resources)
         const char *class = saul_class_to_str(reg->driver->type);
         _saul_class_to_uri(class, td_url, idx);
         sprintf(val_url, "%s/val", td_url);
-
-        printf("td_url: %s\n", td_url);
-        printf("val_url: %s\n", val_url);
 
         /* Get ops for the device */
         int ops = COAP_GET;
