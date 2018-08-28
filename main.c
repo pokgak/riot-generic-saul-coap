@@ -18,7 +18,7 @@ extern int gsc_init(coap_resource_t *resources);
 extern int _get_base_url(char *baseurl);
 extern const char *_get_type(char *url);
 extern const char *_get_name(char *url);
-extern int get_td(char *url);
+extern int get_td(char *out, char *url);
 //extern int _get_devnum(const char *url);
 
 static gcoap_listener_t _listener = {
@@ -42,7 +42,9 @@ int test_td(int argc, char **argv)
     const char *name = _get_name(url);
     printf("name: %s\n", name);
 
-    get_td(url);
+    char td[512];
+    get_td(td, url);
+    printf("td:\n%s\n", td);
 
     return 0;
 }
@@ -72,7 +74,7 @@ int gsc_handler(int argc, char **argv)
 static const shell_command_t shell_commands[] = {
     { "coap", "CoAP example", gcoap_cli_cmd },
     { "gsc", "init gsc", gsc_handler },
-    { "td", "test TD components", test_td },
+    { "test_td", "test TD components", test_td },
     { "test_gsc", "test gsc", test_gsc },
     { NULL, NULL, NULL }
 };
