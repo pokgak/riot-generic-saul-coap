@@ -209,7 +209,7 @@ int gsc_init(coap_resource_t *resources)
         char val_url[NANOCOAP_URL_MAX]; // FIXME: URI longer than '/sense/temp/7' can't be processed
         char td_url[NANOCOAP_URL_MAX];
         const char *class = saul_class_to_str(reg->driver->type);
-        _saul_class_to_uri(class, td_url, idx);
+        _saul_class_to_uri(class, td_url, idx / 2);
         sprintf(val_url, "%s/val", td_url);
 
         /* Get ops for the device */
@@ -230,14 +230,14 @@ int gsc_init(coap_resource_t *resources)
 	resources[idx].context = NULL;
 
         // FIXME: need something better
-	resources[idx + 15].path = _val_urls[idx];
-	resources[idx + 15].methods = ops;
-	resources[idx + 15].handler = _generic_val_handler;
-	resources[idx + 15].context = NULL;
+	resources[idx + 1].path = _val_urls[idx];
+	resources[idx + 1].methods = ops;
+	resources[idx + 1].handler = _generic_val_handler;
+	resources[idx + 1].context = NULL;
 
 	/* get next reg */
 	reg = reg->next;
-	idx++;
+	idx += 2;
     }
     return 0;
 }
