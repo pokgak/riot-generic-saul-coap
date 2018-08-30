@@ -28,7 +28,7 @@ int _get_devnum(const char *url)
  * Parse the (multidimensional) result res from given phydat_t and
  * write the value to the char *data
  */
-static ssize_t _parse_res(uint8_t dim, phydat_t *res, char *data)
+static ssize_t _parse_res(uint8_t dim, phydat_t *res, char *data, size_t datalen)
 {
     if (res == NULL || dim > PHYDAT_DIM) {
         puts("Unable to display data object");
@@ -79,6 +79,9 @@ static ssize_t _parse_res(uint8_t dim, phydat_t *res, char *data)
         sprintf(data + strlen(data), "%s\n", phydat_unit_to_str(res->unit));
     }
 
+    if (strlen(data) > datalen)
+        return -1;
+
     return 0;
 }
 
@@ -123,6 +126,8 @@ static ssize_t _generic_val_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, v
     /* read coap method type in packet */
     unsigned method_flag = coap_method2flag(coap_get_code_detail(pdu));
 
+    size_t datalen = 50;
+    char data[datalen];
     switch(method_flag) {
         case COAP_GET:
             gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
@@ -137,8 +142,7 @@ static ssize_t _generic_val_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, v
 	    }
 
 	    /* write value read to response buffer */
-	    char data[50];
-	    _parse_res(dim, &res, data);
+	    _parse_res(dim, &res, data, datalen);
 	    memcpy(pdu->payload, data, strlen(data));
 
             return gcoap_finish(pdu, strlen(data), COAP_FORMAT_TEXT);
@@ -174,7 +178,7 @@ static ssize_t _generic_val_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, v
     return 0;
 }
 
-static int _saul_class_to_uri(const char *class, char *uri, int num)
+static int _saul_class_to_uri(const char *class, char *uri, size_t urilen, int num)
 {
 	/* prepend '/' at the start, num at the end*/
 	sprintf(uri, "/%i/%s", num, class);
@@ -187,6 +191,9 @@ static int _saul_class_to_uri(const char *class, char *uri, int num)
 		    /* change to lowercase */
 		    uri[i] = (char)tolower((int)uri[i]);
 	}
+
+        if (strlen(uri) > urilen)
+            return -1;
 
 	return 0;
 }
@@ -209,7 +216,7 @@ int gsc_init(coap_resource_t *resources)
         char val_url[NANOCOAP_URL_MAX]; // FIXME: URI longer than '/sense/temp/7' can't be processed
         char td_url[NANOCOAP_URL_MAX];
         const char *class = saul_class_to_str(reg->driver->type);
-        _saul_class_to_uri(class, td_url, idx / 2);
+        _saul_class_to_uri(class, td_url, NANOCOAP_URL_MAX, idx / 2);
         sprintf(val_url, "%s/val", td_url);
 
         /* Get ops for the device */

@@ -14,9 +14,9 @@ static coap_resource_t _resources[15 * 2]; /* for td and val */
 extern int gcoap_cli_cmd(int argc, char **argv);
 extern void gcoap_cli_init(void);
 extern int gsc_init(coap_resource_t *resources); 
-extern int get_td(char *out, char *url);
+extern int get_td(char *out, size_t len, char *url);
 
-extern int _get_base_url(char *baseurl);
+extern int _get_base_url(char *baseurl, size_t len);
 extern int _get_devnum(const char *url);
 extern const char *_get_type(char *url);
 extern const char *_get_name(char *url);
@@ -33,7 +33,7 @@ int test_td(int argc, char **argv)
     (void)argv;
 
     char baseurl[IPV6_ADDR_MAX_STR_LEN];
-    _get_base_url(baseurl);
+    _get_base_url(baseurl, IPV6_ADDR_MAX_STR_LEN);
 
     char *url = "/0/sense/switch";
     const char *type = _get_type(url);
@@ -42,8 +42,9 @@ int test_td(int argc, char **argv)
     const char *name = _get_name(url);
     printf("name: %s\n", name);
 
-    char td[512];
-    get_td(td, url);
+    size_t tdlen = 512;
+    char td[tdlen];
+    get_td(td, tdlen, url);
     printf("td:\n%s\n", td);
 
     return 0;
