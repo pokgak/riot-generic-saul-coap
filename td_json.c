@@ -58,7 +58,7 @@ const char *_get_name(const char *url)
     char name[20];
     char *start = strrchr((const char *) url, '/');
     char *last = (char *) (url + strlen(url));
-    snprintf(name, (ssize_t) (last - start), "%s", start + 1);
+    snprintf(name, (size_t) (last - start), "%s", start + 1);
 
     /* this can be better */
     if (strcmp(name, "switch") == 0)

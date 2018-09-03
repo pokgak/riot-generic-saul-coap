@@ -20,7 +20,7 @@ int get_devnum(const char *url)
     /* skip the first '/' in url */
     const char *start = url + 1;
     const char *last = strchr(start, '/');
-    snprintf(num, (ssize_t) (last - start + 1), "%s", start);
+    snprintf(num, (size_t) (last - start + 1), "%s", start);
     return atoi((const char *) num);
 }
 
@@ -95,7 +95,7 @@ static ssize_t _generic_td_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, vo
     }
 
     gcoap_resp_init(pdu, buf,  len, COAP_CODE_CONTENT);
-    ssize_t td_len = get_td((char *)pdu->payload, (const char *)pdu->url);
+    size_t td_len = get_td((char *)pdu->payload, (const char *)pdu->url);
 
     return gcoap_finish(pdu, td_len, COAP_FORMAT_TEXT);
 }
