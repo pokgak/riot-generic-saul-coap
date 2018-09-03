@@ -94,8 +94,10 @@ static ssize_t _generic_td_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, vo
         return -1;
     }
 
-    gcoap_resp_init(pdu, buf,  len, COAP_CODE_CONTENT);
+    // FIXME: without this printf _get_type in get_td will return INVALID TYPE
+    printf("_generic_td_handler: url: %s\n", pdu->url);
     size_t td_len = get_td((char *)pdu->payload, (const char *)pdu->url);
+    gcoap_resp_init(pdu, buf,  len, COAP_CODE_CONTENT);
 
     return gcoap_finish(pdu, td_len, COAP_FORMAT_TEXT);
 }
