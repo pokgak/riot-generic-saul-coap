@@ -15,9 +15,9 @@ extern int gcoap_cli_cmd(int argc, char **argv);
 extern void gcoap_cli_init(void);
 extern int gsc_init(coap_resource_t *resources); 
 extern int get_td(char *out, size_t len, char *url);
+extern int get_devnum(const char *url);
 
 extern int _get_base_url(char *baseurl, size_t len);
-extern int _get_devnum(const char *url);
 extern const char *_get_type(char *url);
 extern const char *_get_name(char *url);
 
@@ -56,7 +56,7 @@ int test_gsc(int argc, char **argv)
     (void)argv;
 
     const char *url = "/0/sense/switch";
-    _get_devnum(url);
+    get_devnum(url);
 
     return 0;
 }

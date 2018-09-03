@@ -14,7 +14,7 @@ static char _val_urls[NUM_URLS][NANOCOAP_URL_MAX];
 /*
  * Parses URL for device num. Used to retrieve device from saul registry
  */
-int _get_devnum(const char *url)
+int get_devnum(const char *url)
 {
     char num[4];
     /* skip the first '/' in url */
@@ -111,7 +111,7 @@ static ssize_t _generic_val_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, v
 
     /* find which sensor we are currently dealing with */
     saul_reg_t *dev;
-    int num = _get_devnum((const char *)pdu->url);
+    int num = get_devnum((const char *)pdu->url);
     if (num < 0) {
 	    printf("_generic_handler: cannot find dev with URI %s\n", pdu->url);
 	    return -1;
