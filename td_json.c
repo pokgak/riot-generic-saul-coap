@@ -3,9 +3,12 @@
 #include "net/ipv6.h"
 #include "net/gnrc.h"
 #include "net/gnrc/netapi.h"
+#include "saul_reg.h"
 
 #define TD_CONTEXT "https://w3c.github.io/wot/w3c-wot-td-context.jsonld"
 #define GSC_PORT "5683"
+
+extern int get_devnum(const char *url);
 
 int _get_base_url(char *baseurl, size_t len)
 {
@@ -55,18 +58,14 @@ const char *_get_type(const char *url)
 
 const char *_get_name(const char *url)
 {
-    char name[20];
-    char *start = strrchr((const char *) url, '/');
-    char *last = (char *) (url + strlen(url));
-    snprintf(name, (size_t) (last - start), "%s", start + 1);
+    int devnum = get_devnum(url);
+    saul_reg_t *dev = saul_reg_find_nth(devnum);
+    if (dev == NULL) {
+        puts("_get_name: undefined device number given");
+        return "INVALID NAME";
+    }
 
-    /* this can be better */
-    if (strcmp(name, "switch") == 0)
-        return "Switch";
-    else if (strcmp(name, "accel") == 0)
-        return "Accelerator";
-    else
-        return "INVALID_NAME";
+    return dev->name;
 }
 
 const char *_is_writable(const char *url)
