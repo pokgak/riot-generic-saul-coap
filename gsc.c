@@ -6,7 +6,7 @@
 
 #define NUM_URLS (15)
 
-extern ssize_t get_td(char *out, const char *url);
+extern ssize_t get_td(char *out, size_t tdlen, const char *url);
 
 static char _td_urls[NUM_URLS][NANOCOAP_URL_MAX];
 static char _val_urls[NUM_URLS][NANOCOAP_URL_MAX];
@@ -16,11 +16,11 @@ static char _val_urls[NUM_URLS][NANOCOAP_URL_MAX];
  */
 int get_devnum(const char *url)
 {
-    char num[4];
-    /* skip the first '/' in url */
-    const char *start = url + 1;
-    const char *last = strchr(start, '/');
-    snprintf(num, (size_t) (last - start + 1), "%s", start);
+    char num[10];
+    char *start = (char *)url;
+    char *last = strchr(url + 1, '/');
+    snprintf(num, last - start, "%s", start + 1);
+
     return atoi((const char *) num);
 }
 
@@ -95,9 +95,11 @@ static ssize_t _generic_td_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, vo
     }
 
     // FIXME: without this printf _get_type in get_td will return INVALID TYPE
-    printf("_generic_td_handler: url: %s\n", pdu->url);
-    size_t td_len = get_td((char *)pdu->payload, (const char *)pdu->url);
+    size_t tdlen = 512;
+    char td[tdlen];
+    size_t td_len = get_td(td, tdlen, (const char *)(pdu->url));
     gcoap_resp_init(pdu, buf,  len, COAP_CODE_CONTENT);
+    memcpy(pdu->payload, td, td_len);
 
     return gcoap_finish(pdu, td_len, COAP_FORMAT_TEXT);
 }
