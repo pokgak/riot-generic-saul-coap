@@ -34,7 +34,7 @@ static ssize_t _parse_res(uint8_t dim, phydat_t *res, char *data, size_t datalen
         puts("Unable to display data object");
         return -1;
     }
-    sprintf(data, "Data:");
+    snprintf(data, datalen, "Data:");
     for (uint8_t i = 0; i < dim; i++) {
         char scale_prefix;
 
@@ -53,30 +53,30 @@ static ssize_t _parse_res(uint8_t dim, phydat_t *res, char *data, size_t datalen
                 scale_prefix = phydat_prefix_from_scale(res->scale);
         }
 
-        sprintf(data + strlen(data), "\t");
+        snprintf(data + strlen(data), datalen, "\t");
         if (dim > 1) {
-            sprintf(data + strlen(data), "[%u] ", (unsigned int)i);
+            snprintf(data + strlen(data), datalen, "[%u] ", (unsigned int)i);
         }
         else {
-            sprintf(data + strlen(data), "     ");
+            snprintf(data + strlen(data), datalen, "     ");
         }
         if (scale_prefix) {
-            sprintf(data + strlen(data), "%6d %c", (int)res->val[i], scale_prefix);
+            snprintf(data + strlen(data), datalen, "%6d %c", (int)res->val[i], scale_prefix);
         }
         else if (res->scale == 0) {
-            sprintf(data + strlen(data), "%6d", (int)res->val[i]);
+            snprintf(data + strlen(data), datalen, "%6d", (int)res->val[i]);
         }
         else if ((res->scale > -5) && (res->scale < 0)) {
             char num[8];
             size_t len = fmt_s16_dfp(num, res->val[i], res->scale);
             num[len] = '\0';
-            sprintf(data + strlen(data), "%s", num);
+            snprintf(data + strlen(data), datalen, "%s", num);
         }
         else {
-            sprintf(data + strlen(data), "%iE%i", (int)res->val[i], (int)res->scale);
+            snprintf(data + strlen(data), datalen, "%iE%i", (int)res->val[i], (int)res->scale);
         }
 
-        sprintf(data + strlen(data), "%s\n", phydat_unit_to_str(res->unit));
+        snprintf(data + strlen(data), datalen, "%s\n", phydat_unit_to_str(res->unit));
     }
 
     if (strlen(data) > datalen)
@@ -185,7 +185,7 @@ static ssize_t _generic_val_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, v
 static int _saul_class_to_uri(const char *class, char *uri, size_t urilen, int num)
 {
 	/* prepend '/' at the start, num at the end*/
-	sprintf(uri, "/%i/%s", num, class);
+	snprintf(uri, urilen, "/%i/%s", num, class);
 
 	for (int i = 0; i < (int) strlen(uri); i++) {
 		/* replace any '_' with / */
@@ -221,7 +221,7 @@ int gsc_init(coap_resource_t *resources)
         char td_url[NANOCOAP_URL_MAX];
         const char *class = saul_class_to_str(reg->driver->type);
         _saul_class_to_uri(class, td_url, NANOCOAP_URL_MAX, idx / 2);
-        sprintf(val_url, "%s/val", td_url);
+        snprintf(val_url, NANOCOAP_URL_MAX, "%s/val", td_url);
 
         /* Get ops for the device */
         int ops = COAP_GET;

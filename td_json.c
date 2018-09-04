@@ -97,29 +97,30 @@ ssize_t get_td(char *td, size_t tdlen, const char *url)
     char baseurl[IPV6_ADDR_MAX_STR_LEN];
     _get_base_url(baseurl, IPV6_ADDR_MAX_STR_LEN);
 
-    sprintf(td, "{\n");
-    sprintf(td + strlen(td), "  \"@context\": [\"%s\"],\n", TD_CONTEXT);
-    sprintf(td + strlen(td), "  \"@type\": [\"%s\"],\n", _get_type(url));
-    sprintf(td + strlen(td), "  \"name\": \"%s\",\n", _get_name(url));
-    sprintf(td + strlen(td), "  \"base\": \"coap://%s:%s/\",\n", baseurl, GSC_PORT);
-    sprintf(td + strlen(td), "  \"interaction\": [\n");
-    sprintf(td + strlen(td), "    {\n");
-    sprintf(td + strlen(td), "      \"@type\": [\"Property\", \"%s\"],\n", _get_name(url));
-    sprintf(td + strlen(td), "      \"schema\": {\n");
-    sprintf(td + strlen(td), "        \"type\": \"number\"\n");
-    sprintf(td + strlen(td), "      },\n");
-    sprintf(td + strlen(td), "      \"writable\": %s,\n", _is_writable(url));
-    sprintf(td + strlen(td), "      \"observable\": %s,\n", _is_observable(url));
-    sprintf(td + strlen(td), "      \"form\": [{\n");
-    sprintf(td + strlen(td), "        \"href\": \"%s\",\n", _get_href(url));
-    sprintf(td + strlen(td), "        \"mediaType\": \"%s\"\n", _get_media_type(url));
-    sprintf(td + strlen(td), "      }]\n");
-    sprintf(td + strlen(td), "    }\n");
-    sprintf(td + strlen(td), "  ]\n");
-    sprintf(td + strlen(td), "}\n");
+    snprintf(td, tdlen, "{\n");
+    snprintf(td + strlen(td), tdlen, "  \"@context\": [\"%s\"],\n", TD_CONTEXT);
+    snprintf(td + strlen(td), tdlen, "  \"@type\": [\"%s\"],\n", _get_type(url));
+    snprintf(td + strlen(td), tdlen, "  \"name\": \"%s\",\n", _get_name(url));
+    snprintf(td + strlen(td), tdlen, "  \"base\": \"coap://%s:%s/\",\n", baseurl, GSC_PORT);
+    snprintf(td + strlen(td), tdlen, "  \"interaction\": [\n");
+    snprintf(td + strlen(td), tdlen, "    {\n");
+    snprintf(td + strlen(td), tdlen, "      \"@type\": [\"Property\", \"%s\"],\n", _get_name(url));
+    snprintf(td + strlen(td), tdlen, "      \"schema\": {\n");
+    snprintf(td + strlen(td), tdlen, "        \"type\": \"number\"\n");
+    snprintf(td + strlen(td), tdlen, "      },\n");
+    snprintf(td + strlen(td), tdlen, "      \"writable\": %s,\n", _is_writable(url));
+    snprintf(td + strlen(td), tdlen, "      \"observable\": %s,\n", _is_observable(url));
+    snprintf(td + strlen(td), tdlen, "      \"form\": [{\n");
+    snprintf(td + strlen(td), tdlen, "        \"href\": \"%s\",\n", _get_href(url));
+    snprintf(td + strlen(td), tdlen, "        \"mediaType\": \"%s\"\n", _get_media_type(url));
+    snprintf(td + strlen(td), tdlen, "      }]\n");
+    snprintf(td + strlen(td), tdlen, "    }\n");
+    snprintf(td + strlen(td), tdlen, "  ]\n");
+    snprintf(td + strlen(td), tdlen, "}\n");
 
-    if (strlen(td) > tdlen)
+    size_t td_act_len = strlen(td);
+    if (td_act_len > tdlen)
         return -1;
 
-    return strlen(td);
+    return td_act_len;
 }
