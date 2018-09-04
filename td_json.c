@@ -4,11 +4,13 @@
 #include "net/gnrc.h"
 #include "net/gnrc/netapi.h"
 #include "saul_reg.h"
+#include "gsc.h"
 
 #define TD_CONTEXT "https://w3c.github.io/wot/w3c-wot-td-context.jsonld"
 #define GSC_PORT "5683"
 
 extern int get_devnum(const char *url);
+extern const char *get_type(const char *url);
 
 int _get_base_url(char *baseurl, size_t len)
 {
@@ -36,24 +38,6 @@ int _get_base_url(char *baseurl, size_t len)
         return -1;
 
     return 0;
-}
-
-const char *_get_type(const char *url)
-{
-    char type[10];
-    char *start = 1 + strchr((const char *)url + 1, '/');
-    char *last = strchr((const char *)start + 1, '/');
-    snprintf(type, (size_t) (last - start + 1), "%s", start);
-
-    if (strcmp(type, "act") == 0) {
-        return "Actuator";
-    }
-    else if (strcmp(type, "sense") == 0) {
-        return "Sensor";
-    }
-    else {
-        return "INVALID_TYPE";
-    }
 }
 
 const char *_get_name(const char *url)
@@ -99,7 +83,7 @@ ssize_t get_td(char *td, size_t tdlen, const char *url)
 
     snprintf(td, tdlen, "{\n");
     snprintf(td + strlen(td), tdlen, "  \"@context\": [\"%s\"],\n", TD_CONTEXT);
-    snprintf(td + strlen(td), tdlen, "  \"@type\": [\"%s\"],\n", _get_type(url));
+    snprintf(td + strlen(td), tdlen, "  \"@type\": [\"%s\"],\n", get_type(url));
     snprintf(td + strlen(td), tdlen, "  \"name\": \"%s\",\n", _get_name(url));
     snprintf(td + strlen(td), tdlen, "  \"base\": \"coap://%s:%s/\",\n", baseurl, GSC_PORT);
     snprintf(td + strlen(td), tdlen, "  \"interaction\": [\n");

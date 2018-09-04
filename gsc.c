@@ -176,22 +176,9 @@ static ssize_t _generic_val_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, v
     return 0;
 }
 
-const char *get_type(const char *class)
+const char *get_type(const char *url)
 {
-    char *start = (char *)class;
-    char *last = strchr(start + 1, '_');
-    char type[15];
-    snprintf(type, last - start + 1, "%s", start);
-
-    if (strcmp(type, "ACT") == 0) {
-        return "Actuator";
-    }
-    else if (strcmp(type, "SENSE") == 0) {
-        return "Sensor";
-    }
-    else {
-        return "INVALID_TYPE";
-    }
+    return gsc_devs[get_devnum(url)].type;
 }
 
 /*
