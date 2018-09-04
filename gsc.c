@@ -1,15 +1,14 @@
 #include <stdio.h>
-#include <ctype.h>
 #include "net/gcoap.h"
 #include "fmt.h"
 #include "saul_reg.h"
+#include "gsc.h"
 
 #define NUM_URLS (15)
 
 extern ssize_t get_td(char *out, size_t tdlen, const char *url);
 
-static char _td_urls[NUM_URLS][NANOCOAP_URL_MAX];
-static char _val_urls[NUM_URLS][NANOCOAP_URL_MAX];
+static gsc_t gsc_devs[NUM_URLS];
 
 /*
  * Parses URL for device num. Used to retrieve device from saul registry
@@ -177,6 +176,24 @@ static ssize_t _generic_val_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, v
     return 0;
 }
 
+const char *get_type(const char *class)
+{
+    char *start = (char *)class;
+    char *last = strchr(start + 1, '_');
+    char type[15];
+    snprintf(type, last - start + 1, "%s", start);
+
+    if (strcmp(type, "ACT") == 0) {
+        return "Actuator";
+    }
+    else if (strcmp(type, "SENSE") == 0) {
+        return "Sensor";
+    }
+    else {
+        return "INVALID_TYPE";
+    }
+}
+
 /*
  * Adds dev to the resource array _resources.
  * Parses the URI from the SAUL_CLASS.
@@ -191,16 +208,31 @@ int gsc_init(coap_resource_t *resources)
      */
     saul_reg_t *reg = saul_reg;
     while (reg) {
-        char val_url[NANOCOAP_URL_MAX]; // FIXME: URI longer than '/sense/temp/7' can't be processed
-        char td_url[NANOCOAP_URL_MAX];
+        /* set gsc_t devno */
+        gsc_devs[idx / 2].devno = idx / 2;
+
+        /* set gsc_t type */
+        char *start = (char *)saul_class_to_str(reg->driver->type);
+        char *last = strchr(start + 1, '_');
+        char type[15];
+        snprintf(type, last - start + 1, "%s", start);
+
+        if (strcmp(type, "ACT") == 0)
+            gsc_devs[idx / 2].type = "Actuator";
+        else if (strcmp(type, "SENSE") == 0)
+            gsc_devs[idx / 2].type = "Sensor";
+        else
+            gsc_devs[idx / 2].type = "INVALID_TYPE";
 
         /* create td and val url */
+        char val_url[NANOCOAP_URL_MAX];
+        char td_url[NANOCOAP_URL_MAX];
         snprintf(td_url, NANOCOAP_URL_MAX, "/%d", idx / 2);
         snprintf(val_url, NANOCOAP_URL_MAX, "%s/val", td_url);
 
         /* Adds url to list */
-	strcpy(_td_urls[idx], td_url);
-        strcpy(_val_urls[idx], val_url);
+	strcpy(gsc_devs[idx / 2].td_url, td_url);
+        strcpy(gsc_devs[idx / 2].val_url, val_url);
 
         /* Get ops for the device */
         int ops = COAP_GET;
@@ -209,15 +241,13 @@ int gsc_init(coap_resource_t *resources)
 		ops |= COAP_POST;
         }
 
-
         /* Adds the device to resource list */
-	resources[idx].path = _td_urls[idx];
+	resources[idx].path = gsc_devs[idx / 2].td_url;
 	resources[idx].methods = ops;
 	resources[idx].handler = _generic_td_handler;
 	resources[idx].context = NULL;
 
-        // FIXME: need something better
-	resources[idx + 1].path = _val_urls[idx];
+	resources[idx + 1].path = gsc_devs[idx / 2].val_url;
 	resources[idx + 1].methods = ops;
 	resources[idx + 1].handler = _generic_val_handler;
 	resources[idx + 1].context = NULL;
