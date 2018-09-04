@@ -16,12 +16,7 @@ static char _val_urls[NUM_URLS][NANOCOAP_URL_MAX];
  */
 int get_devnum(const char *url)
 {
-    char num[10];
-    char *start = (char *)url;
-    char *last = strchr(url + 1, '/');
-    snprintf(num, last - start, "%s", start + 1);
-
-    return atoi((const char *) num);
+    return atoi((const char *) url + 1);
 }
 
 /*
@@ -182,26 +177,6 @@ static ssize_t _generic_val_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, v
     return 0;
 }
 
-static int _saul_class_to_uri(const char *class, char *uri, size_t urilen, int num)
-{
-	/* prepend '/' at the start, num at the end*/
-	snprintf(uri, urilen, "/%i/%s", num, class);
-
-	for (int i = 0; i < (int) strlen(uri); i++) {
-		/* replace any '_' with / */
-		if (uri[i] == '_')
-		    uri[i] = '/';
-		else
-		    /* change to lowercase */
-		    uri[i] = (char)tolower((int)uri[i]);
-	}
-
-        if (strlen(uri) > urilen)
-            return -1;
-
-	return 0;
-}
-
 /*
  * Adds dev to the resource array _resources.
  * Parses the URI from the SAUL_CLASS.
@@ -216,12 +191,16 @@ int gsc_init(coap_resource_t *resources)
      */
     saul_reg_t *reg = saul_reg;
     while (reg) {
-        /* Parse the SAUL_CLASS for the URI */
         char val_url[NANOCOAP_URL_MAX]; // FIXME: URI longer than '/sense/temp/7' can't be processed
         char td_url[NANOCOAP_URL_MAX];
-        const char *class = saul_class_to_str(reg->driver->type);
-        _saul_class_to_uri(class, td_url, NANOCOAP_URL_MAX, idx / 2);
+
+        /* create td and val url */
+        snprintf(td_url, NANOCOAP_URL_MAX, "/%d", idx / 2);
         snprintf(val_url, NANOCOAP_URL_MAX, "%s/val", td_url);
+
+        /* Adds url to list */
+	strcpy(_td_urls[idx], td_url);
+        strcpy(_val_urls[idx], val_url);
 
         /* Get ops for the device */
         int ops = COAP_GET;
@@ -230,9 +209,6 @@ int gsc_init(coap_resource_t *resources)
 		ops |= COAP_POST;
         }
 
-        /* Adds url to list */
-	strcpy(_td_urls[idx], td_url);
-        strcpy(_val_urls[idx], val_url);
 
         /* Adds the device to resource list */
 	resources[idx].path = _td_urls[idx];
