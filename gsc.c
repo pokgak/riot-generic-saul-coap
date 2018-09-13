@@ -6,19 +6,11 @@
 
 extern ssize_t get_td(char *out, size_t tdlen, const char *url);
 
-static gsc_t gsc_devs[GSC_MAX_URLS];
-
-/*
- * Parses URL for device num. Used to retrieve device from saul registry
- */
-int get_devnum(const char *url)
-{
-    return atoi((const char *) url + 1);
-}
+static gsc_t gsc_devs[GSC_MAX_URLS];	/*<Information about registered devices */
 
 /*
  * Parse the (multidimensional) result res from given phydat_t and
- * write the value to the char *data
+ * write the value to data.
  */
 static ssize_t _parse_res(uint8_t dim, phydat_t *res, char *data, size_t datalen)
 {
@@ -77,6 +69,10 @@ static ssize_t _parse_res(uint8_t dim, phydat_t *res, char *data, size_t datalen
     return 0;
 }
 
+/*
+ * Generic handler for the devices registered at (/0, /1, ..., /9).
+ * Returns the Thing Description for each device.
+ */
 static ssize_t _generic_td_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void *ctx)
 {
     (void)ctx;
@@ -86,7 +82,6 @@ static ssize_t _generic_td_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, vo
         return -1;
     }
 
-    // FIXME: without this printf _get_type in get_td will return INVALID TYPE
     size_t tdlen = 512;
     char td[tdlen];
     size_t td_len = get_td(td, tdlen, (const char *)(pdu->url));
@@ -97,8 +92,9 @@ static ssize_t _generic_td_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, vo
 }
 
 /*
- * Generic handler for the resources. Accepts either a GET or a PUT.
- * Only read or write values for now.
+ * Generic handler for the devices value. Accepts GET, PUT, POST but handles
+ * PUT and POST the same for now.
+ * Use to read value and only write when the devices is writable.
  */
 static ssize_t _generic_val_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, void *ctx)
 {
@@ -174,23 +170,20 @@ static ssize_t _generic_val_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, v
     return 0;
 }
 
+int get_devnum(const char *url)
+{
+    return atoi((const char *) url + 1);
+}
+
 const char *get_type(const char *url)
 {
     return gsc_devs[get_devnum(url)].type;
 }
 
-/*
- * Adds dev to the resource array _resources.
- * Parses the URI from the SAUL_CLASS.
- * Uses _generic_handler for the handler.
- */
 int gsc_init(coap_resource_t *resources)
 {
     int idx = 0;
 
-    /* FIXME: currently adds all available devices to resources list.
-     * How to avoid duplicates?
-     */
     saul_reg_t *reg = saul_reg;
     while (reg && 
 	  (idx < GSC_MAX_URLS)) {

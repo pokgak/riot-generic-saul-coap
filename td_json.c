@@ -76,6 +76,9 @@ const char *_get_media_type(const char *url)
     return "application/json";
 }
 
+/*
+ * Returns the Thing Description of the given device in JSON format
+ */
 ssize_t get_td(char *td, size_t tdlen, const char *url)
 {
     char baseurl[IPV6_ADDR_MAX_STR_LEN];
