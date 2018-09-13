@@ -42,6 +42,9 @@ USEMODULE += ps
 # Add SAUL
 USEMODULE += saul_default
 
+# Use package cn-cbor
+USEPKG += cn-cbor
+
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the
 # development process:
