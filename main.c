@@ -22,20 +22,8 @@ static gcoap_listener_t _listener = {
     NULL
 };
 
-int gsc_handler(int argc, char **argv)
-{
-    (void)argc;
-    (void)argv;
-
-    gsc_init(_resources);
-    gcoap_register_listener(&_listener);
-
-    return 0;
-}
-
 static const shell_command_t shell_commands[] = {
     { "coap", "CoAP example", gcoap_cli_cmd },
-    { "gsc", "init gsc", gsc_handler },
     { NULL, NULL, NULL }
 };
 
@@ -44,7 +32,11 @@ int main(void)
     /* for the thread running the shell */
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
     gcoap_cli_init();
-    puts("gcoap example app");
+
+    gsc_init(_resources);
+    gcoap_register_listener(&_listener);
+
+    puts("gsc example app");
 
     /* start shell */
     puts("All up, running the shell now");
