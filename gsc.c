@@ -4,11 +4,9 @@
 #include "saul_reg.h"
 #include "gsc.h"
 
-#define NUM_URLS (15)
-
 extern ssize_t get_td(char *out, size_t tdlen, const char *url);
 
-static gsc_t gsc_devs[NUM_URLS];
+static gsc_t gsc_devs[GSC_MAX_URLS];
 
 /*
  * Parses URL for device num. Used to retrieve device from saul registry
@@ -194,9 +192,10 @@ int gsc_init(coap_resource_t *resources)
      * How to avoid duplicates?
      */
     saul_reg_t *reg = saul_reg;
-    while (reg) {
+    while (reg && 
+	  (idx < GSC_MAX_URLS)) {
         /* set gsc_t devno */
-        gsc_devs[idx / 2].devno = idx / 2;
+        gsc_devs[idx].devno = idx;
 
         /* set gsc_t type */
         char *start = (char *)saul_class_to_str(reg->driver->type);
@@ -205,21 +204,21 @@ int gsc_init(coap_resource_t *resources)
         snprintf(type, last - start + 1, "%s", start);
 
         if (strcmp(type, "ACT") == 0)
-            gsc_devs[idx / 2].type = "Actuator";
+            gsc_devs[idx].type = "Actuator";
         else if (strcmp(type, "SENSE") == 0)
-            gsc_devs[idx / 2].type = "Sensor";
+            gsc_devs[idx].type = "Sensor";
         else
-            gsc_devs[idx / 2].type = "INVALID_TYPE";
+            gsc_devs[idx].type = "INVALID_TYPE";
 
         /* create td and val url */
         char val_url[NANOCOAP_URL_MAX];
         char td_url[NANOCOAP_URL_MAX];
-        snprintf(td_url, NANOCOAP_URL_MAX, "/%d", idx / 2);
+        snprintf(td_url, NANOCOAP_URL_MAX, "/%d", idx);
         snprintf(val_url, NANOCOAP_URL_MAX, "%s/val", td_url);
 
         /* Adds url to list */
-	strcpy(gsc_devs[idx / 2].td_url, td_url);
-        strcpy(gsc_devs[idx / 2].val_url, val_url);
+	strcpy(gsc_devs[idx].td_url, td_url);
+        strcpy(gsc_devs[idx].val_url, val_url);
 
         /* Get ops for the device */
         int ops = COAP_GET;
@@ -229,19 +228,20 @@ int gsc_init(coap_resource_t *resources)
         }
 
         /* Adds the device to resource list */
-	resources[idx].path = gsc_devs[idx / 2].td_url;
-	resources[idx].methods = ops;
-	resources[idx].handler = _generic_td_handler;
-	resources[idx].context = NULL;
+	int pos = idx * 2;
+	resources[pos].path = gsc_devs[idx].td_url;
+	resources[pos].methods = ops;
+	resources[pos].handler = _generic_td_handler;
+	resources[pos].context = NULL;
 
-	resources[idx + 1].path = gsc_devs[idx / 2].val_url;
-	resources[idx + 1].methods = ops;
-	resources[idx + 1].handler = _generic_val_handler;
-	resources[idx + 1].context = NULL;
+	resources[pos + 1].path = gsc_devs[idx].val_url;
+	resources[pos + 1].methods = ops;
+	resources[pos + 1].handler = _generic_val_handler;
+	resources[pos + 1].context = NULL;
 
 	/* get next reg */
 	reg = reg->next;
-	idx += 2;
+	idx++;
     }
     return 0;
 }

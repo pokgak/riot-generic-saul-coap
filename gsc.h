@@ -7,6 +7,10 @@
 extern "C" {
 #endif
 
+#ifndef GSC_MAX_URLS
+#define GSC_MAX_URLS (10)
+#endif
+
 typedef struct gsc_t {
     int devno;
     const char *type;
