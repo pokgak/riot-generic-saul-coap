@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include "net/ipv6.h"
 #include "net/gnrc.h"
 #include "net/gnrc/netapi.h"
 #include "saul_reg.h"
 #include "gsc.h"
+#include "cn-cbor/cn-cbor.h"
 
 #define TD_CONTEXT "https://w3c.github.io/wot/w3c-wot-td-context.jsonld"
 #define GSC_PORT "5683"
@@ -40,7 +42,7 @@ int _get_base_url(char *baseurl, size_t len)
     return 0;
 }
 
-const char *_get_name(const char *url)
+static const char *_get_name(const char *url)
 {
     int devnum = get_devnum(url);
     saul_reg_t *dev = saul_reg_find_nth(devnum);
@@ -52,62 +54,163 @@ const char *_get_name(const char *url)
     return dev->name;
 }
 
-const char *_is_writable(const char *url)
+static bool _is_writable(const char *url)
 {
     (void)url;
-    return "false";
+    return false;
 }
 
-const char *_is_observable(const char *url)
+static bool _is_observable(const char *url)
 {
     (void)url;
-    return "true";
+    return true;
 }
 
-const char *_get_href(const char *url)
+static const char *_get_href(const char *url)
 {
     (void)url;
     return "val";
 }
 
-const char *_get_media_type(const char *url)
+static const char *_get_media_type(const char *url)
 {
     (void)url;
     return "application/json";
 }
 
-/*
- * Returns the Thing Description of the given device in JSON format
- */
-ssize_t get_td(char *td, size_t tdlen, const char *url)
+static const char *_get_id(const char *url)
 {
-    char baseurl[IPV6_ADDR_MAX_STR_LEN];
-    _get_base_url(baseurl, IPV6_ADDR_MAX_STR_LEN);
+    (void)url;
+    return "ID_EXAMPLE";
+}
 
-    snprintf(td, tdlen, "{\n");
-    snprintf(td + strlen(td), tdlen, "  \"@context\": [\"%s\"],\n", TD_CONTEXT);
-    snprintf(td + strlen(td), tdlen, "  \"@type\": [\"%s\"],\n", get_type(url));
-    snprintf(td + strlen(td), tdlen, "  \"name\": \"%s\",\n", _get_name(url));
-    snprintf(td + strlen(td), tdlen, "  \"base\": \"coap://%s:%s/\",\n", baseurl, GSC_PORT);
-    snprintf(td + strlen(td), tdlen, "  \"interaction\": [\n");
-    snprintf(td + strlen(td), tdlen, "    {\n");
-    snprintf(td + strlen(td), tdlen, "      \"@type\": [\"Property\", \"%s\"],\n", _get_name(url));
-    snprintf(td + strlen(td), tdlen, "      \"schema\": {\n");
-    snprintf(td + strlen(td), tdlen, "        \"type\": \"number\"\n");
-    snprintf(td + strlen(td), tdlen, "      },\n");
-    snprintf(td + strlen(td), tdlen, "      \"writable\": %s,\n", _is_writable(url));
-    snprintf(td + strlen(td), tdlen, "      \"observable\": %s,\n", _is_observable(url));
-    snprintf(td + strlen(td), tdlen, "      \"form\": [{\n");
-    snprintf(td + strlen(td), tdlen, "        \"href\": \"%s\",\n", _get_href(url));
-    snprintf(td + strlen(td), tdlen, "        \"mediaType\": \"%s\"\n", _get_media_type(url));
-    snprintf(td + strlen(td), tdlen, "      }]\n");
-    snprintf(td + strlen(td), tdlen, "    }\n");
-    snprintf(td + strlen(td), tdlen, "  ]\n");
-    snprintf(td + strlen(td), tdlen, "}\n");
+static const char *_get_desc(const char *url)
+{
+    (void)url;
+    return "enter description here";
+}
 
-    size_t td_act_len = strlen(td);
-    if (td_act_len > tdlen)
-        return -1;
+static const char *_get_support(const char *url)
+{
+    (void)url;
+    return NULL;
+}
 
-    return td_act_len;
+static const char *_get_base(const char *url)
+{
+    (void)url;
+    return NULL;
+}
+
+static cn_cbor *_get_properties(const char *url)
+{
+    cn_cbor *properties = cn_cbor_map_create(NULL);
+
+    /* observable */
+    cn_cbor *obs = cn_cbor_data_create(NULL, 0, NULL);
+    obs->type = (_is_observable(url) ? CN_CBOR_TRUE : CN_CBOR_FALSE);
+    cn_cbor_mapput_string(properties, "observable", obs, NULL);
+
+    /* writable */
+    cn_cbor *write = cn_cbor_data_create(NULL, 0, NULL);
+    write->type = (_is_writable(url) ? CN_CBOR_TRUE : CN_CBOR_FALSE);
+    cn_cbor_mapput_string(properties, "writable", write, NULL);
+
+    return properties;
+}
+
+static cn_cbor *_get_actions(const char *url)
+{
+    (void)url;
+    return NULL;
+}
+
+static cn_cbor *_get_events(const char *url)
+{
+    (void)url;
+    return NULL;
+}
+
+static cn_cbor *_get_links(const char *url)
+{
+    (void)url;
+    _get_media_type(url);
+    _get_href(url);
+    _get_base_url((char *)url, 0);
+    return NULL;
+}
+
+static cn_cbor *_get_security(const char *url)
+{
+    (void)url;
+    return NULL;
+}
+
+/*
+ * Returns the Thing Description of the given device/url in cn_cbor struct
+ */
+cn_cbor *get_td(const char *url)
+{
+    cn_cbor *root = cn_cbor_map_create(NULL);
+
+    /* id */
+    cn_cbor_mapput_string(root, "id",
+            cn_cbor_string_create(_get_id(url), NULL), NULL);
+
+    /* description */
+    const char *desc = _get_desc(url);
+    if (desc) {
+        cn_cbor_mapput_string(root, "description",
+                cn_cbor_string_create(desc, NULL), NULL);
+    }
+
+    /* name */
+    cn_cbor_mapput_string(root, "name",
+            cn_cbor_string_create(_get_name(url), NULL), NULL);
+
+    /* support */
+    const char *support = _get_support(url);
+    if (support) {
+        cn_cbor_mapput_string(root, "support",
+                cn_cbor_string_create(support, NULL), NULL);
+    }
+
+    /* base */
+    const char *base = _get_base(url);
+    if (base) {
+        cn_cbor_mapput_string(root, "base", 
+                cn_cbor_string_create(base, NULL), NULL);
+    }
+
+    /* properties */
+    cn_cbor *properties = _get_properties(url);
+    if (properties) {
+        cn_cbor_mapput_string(root, "properties", properties, NULL);
+    }
+
+    /* actions */
+    cn_cbor *actions = _get_actions(url);
+    if (actions) {
+        cn_cbor_mapput_string(root, "actions", actions, NULL);
+    }
+
+    /* events */
+    cn_cbor *events = _get_events(url);
+    if (events) {
+        cn_cbor_mapput_string(root, "events", events, NULL);
+    }
+
+    /* links */
+    cn_cbor *links = _get_links(url);
+    if (links) {
+        cn_cbor_mapput_string(root, "links", links, NULL);
+    }
+
+    /* security */
+    cn_cbor *security = _get_security(url);
+    if (security) {
+        cn_cbor_mapput_string(root, "security", security, NULL);
+    }
+
+    return root;
 }
