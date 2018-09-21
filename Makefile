@@ -41,6 +41,8 @@ USEMODULE += shell_commands
 USEMODULE += ps
 # Add SAUL
 USEMODULE += saul_default
+# cn-cbor uses memarray
+USEMODULE += memarray
 
 # Use package cn-cbor
 USEPKG += cn-cbor

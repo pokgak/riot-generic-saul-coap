@@ -1,12 +1,37 @@
+#define NUM_BLOCKS  7
+
 #include <stdio.h>
 #include "net/gcoap.h"
 #include "fmt.h"
 #include "saul_reg.h"
 #include "gsc.h"
+#include "memarray.h"
+#include "cn-cbor/cn-cbor.h"
 
-extern ssize_t get_td(char *out, size_t tdlen, const char *url);
+extern cn_cbor *get_td(const char *url, cn_cbor_context *ct);
 
-static gsc_t gsc_devs[GSC_MAX_URLS];	/*<Information about registered devices */
+/* calloc/free functions */
+extern void *cbor_calloc(size_t count, size_t size, void *memblock);
+extern void cbor_free(void *ptr, void *memblock);
+
+static gsc_t gsc_devs[GSC_MAX_URLS] = { 0 };	/*<Information about registered devices */
+
+/* Block allocator for context */
+static cn_cbor td_data_storage[NUM_BLOCKS];
+static memarray_t storage;
+
+/* CN_CBOR block allocator context struct */
+static cn_cbor_context ct =
+{
+    .calloc_func = cbor_calloc,
+    .free_func = cbor_free,
+    .context = &storage,
+};
+
+static void _setup_cn_cbor(void)
+{
+    memarray_init(&storage, td_data_storage, sizeof(cn_cbor), NUM_BLOCKS);
+}
 
 /*
  * Parse the (multidimensional) result res from given phydat_t and
@@ -82,9 +107,7 @@ static ssize_t _generic_td_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, vo
         return -1;
     }
 
-    size_t tdlen = 512;
-    char td[tdlen];
-    size_t td_len = get_td(td, tdlen, (const char *)(pdu->url));
+    cn_cbor *td = get_td((const char *)(pdu->url), &ct);
     gcoap_resp_init(pdu, buf,  len, COAP_CODE_CONTENT);
     memcpy(pdu->payload, td, td_len);
 
@@ -236,5 +259,8 @@ int gsc_init(coap_resource_t *resources)
 	reg = reg->next;
 	idx++;
     }
+
+    _setup_cn_cbor();
+
     return 0;
 }
