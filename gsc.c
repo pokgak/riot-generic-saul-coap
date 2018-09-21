@@ -109,9 +109,12 @@ static ssize_t _generic_td_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, vo
 
     cn_cbor *td = get_td((const char *)(pdu->url), &ct);
     gcoap_resp_init(pdu, buf,  len, COAP_CODE_CONTENT);
-    memcpy(pdu->payload, td, td_len);
+    ssize_t ret = cn_cbor_encoder_write(pdu->payload, 0, pdu->payload_len, td);
+    if (ret < 0) {
+        return -1;
+    }
 
-    return gcoap_finish(pdu, td_len, COAP_FORMAT_TEXT);
+    return gcoap_finish(pdu, ret, COAP_FORMAT_CBOR);
 }
 
 /*
