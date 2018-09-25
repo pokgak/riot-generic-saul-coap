@@ -1,4 +1,4 @@
-#define NUM_BLOCKS  7
+#define NUM_BLOCKS  14
 
 #include <stdio.h>
 #include "net/gcoap.h"
