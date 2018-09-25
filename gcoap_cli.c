@@ -5,9 +5,12 @@
 #include "net/gcoap.h"
 #include "od.h"
 #include "fmt.h"
+#include "cn-cbor/cn-cbor.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
+
+extern void parse_cbor(cn_cbor *root);
 
 static void _resp_handler(unsigned req_state, coap_pkt_t* pdu,
                           sock_udp_ep_t *remote);
@@ -59,6 +62,10 @@ static void _resp_handler(unsigned req_state, coap_pkt_t* pdu,
             /* Expecting diagnostic payload in failure cases */
             printf(", %u bytes\n%.*s\n", pdu->payload_len, pdu->payload_len,
                                                           (char *)pdu->payload);
+        }
+        else if (pdu->content_type == COAP_FORMAT_CBOR) {
+            cn_cbor *root = cn_cbor_decode(pdu->payload, pdu->payload_len, NULL, NULL);
+            parse_cbor(root);
         }
         else {
             printf(", %u bytes\n", pdu->payload_len);

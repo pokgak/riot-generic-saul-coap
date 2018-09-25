@@ -26,6 +26,7 @@ void cbor_free(void *ptr, void *memblock)
 void parse_cbor(cn_cbor *root)
 {
     if (root->type == CN_CBOR_MAP) {
+        printf("\n");
         _parse_cbor_map(root);
         printf("\n");
     }
