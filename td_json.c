@@ -16,6 +16,30 @@ extern const char *get_type(const char *url);
 
 static cn_cbor *done_td[GSC_MAX_URLS];   /*<Holds all cn_cbor root that already parsed once */
 
+static void _print_error(cn_cbor_errback *errb)
+{
+    switch (errb->err) {
+    case CN_CBOR_NO_ERROR:              puts("CN_CBOR_NO_ERROR"); break;
+    case CN_CBOR_ERR_OUT_OF_DATA:       puts("CN_CBOR_ERR_OUT_OF_DATA"); break;
+    case CN_CBOR_ERR_NOT_ALL_DATA_CONSUMED:
+                                        puts("CN_CBOR_ERR_NOT_ALL_DATA_CONSUMED"); break;
+    case CN_CBOR_ERR_ODD_SIZE_INDEF_MAP:
+                                        puts("CN_CBOR_ERR_ODD_SIZE_INDEF_MAP"); break;
+    case CN_CBOR_ERR_BREAK_OUTSIDE_INDEF:
+                                        puts("CN_CBOR_ERR_BREAK_OUTSIDE_INDEF"); break;
+    case CN_CBOR_ERR_MT_UNDEF_FOR_INDEF:
+                                        puts("CN_CBOR_ERR_MT_UNDEF_FOR_INDEF"); break;
+    case CN_CBOR_ERR_RESERVED_AI:       puts("CN_CBOR_ERR_RESERVED_AI"); break;
+    case CN_CBOR_ERR_WRONG_NESTING_IN_INDEF_STRING:
+                                        puts("CN_CBOR_ERR_WRONG_NESTING_IN_INDEF_STRING"); break;
+    case CN_CBOR_ERR_INVALID_PARAMETER: puts("CN_CBOR_ERR_INVALID_PARAMETER"); break;
+    case CN_CBOR_ERR_OUT_OF_MEMORY:     puts("CN_CBOR_ERR_OUT_OF_MEMORY"); break;
+    case CN_CBOR_ERR_FLOAT_NOT_SUPPORTED:
+                                        puts("CN_CBOR_ERR_FLOAT_NOT_SUPPORTED"); break;
+    default:                            puts("ERROR NOT DEFINED");
+    }
+}
+
 static int _get_base_url(char *baseurl, size_t len)
 {
     ipv6_addr_t ipv6_addrs[GNRC_NETIF_IPV6_ADDRS_NUMOF];
@@ -107,14 +131,21 @@ static const char *_get_base(const char *url)
 static cn_cbor *_get_properties(const char *url, cn_cbor_context *ct)
 {
     cn_cbor *properties = cn_cbor_map_create(ct, NULL);
+    cn_cbor_errback errb;
+    errb.err = CN_CBOR_NO_ERROR;
 
     /* observable */
-    cn_cbor *obs = cn_cbor_data_create(NULL, 0, ct, NULL);
+    cn_cbor *obs = cn_cbor_data_create(NULL, 0, ct, &errb);
+    if (!obs) {
+        _print_error(&errb);
+    }
     obs->type = (_is_observable(url) ? CN_CBOR_TRUE : CN_CBOR_FALSE);
     cn_cbor_mapput_string(properties, "observable", obs, ct, NULL);
 
     /* writable */
     cn_cbor *write = cn_cbor_data_create(NULL, 0, ct, NULL);
+    if (!write)
+        _print_error(&errb);
     write->type = (_is_writable(url) ? CN_CBOR_TRUE : CN_CBOR_FALSE);
     cn_cbor_mapput_string(properties, "writable", write, ct, NULL);
 
